@@ -32,3 +32,6 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# Dokumentation wird getrackt, auch wenn eine globale Ignore-Regel docs/ ausschliesst
+!docs/
