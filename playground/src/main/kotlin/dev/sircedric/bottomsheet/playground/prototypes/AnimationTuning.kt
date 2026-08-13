@@ -39,6 +39,12 @@ enum class ContentEffect(val label: String) {
     Translated("App wandert hoch"),
 }
 
+enum class BackdropEffect(val label: String, val detail: String) {
+    ScrimOnly("nur Scrim", "abdunkeln, funktioniert ab minSdk 29"),
+    ScrimAndBlur("Scrim + Blur", "abdunkeln und weichzeichnen — Blur erst ab API 31"),
+    BlurOnly("nur Blur", "kein Abdunkeln; unter API 31 passiert gar nichts"),
+}
+
 enum class ScrimAlpha(val label: String, val value: Float) {
     Subtle("0.16", 0.16f),
     Material("0.32", 0.32f),

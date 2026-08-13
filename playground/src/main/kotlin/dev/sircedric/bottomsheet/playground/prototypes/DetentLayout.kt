@@ -15,6 +15,9 @@ import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.gestures.animateTo
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,9 +33,12 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
@@ -98,7 +104,9 @@ fun DetentSheet(
     scrimMode: ScrimMode,
     scrimAlpha: ScrimAlpha,
     scrimColor: Color,
+    backdrop: BackdropEffect,
     sheetBackground: Color,
+    handleColor: Color,
     contentEffect: ContentEffect,
     onDismiss: () -> Unit,
     appContent: @Composable () -> Unit,
@@ -117,6 +125,8 @@ fun DetentSheet(
             "  animating=${state.isAnimationRunning}  presented=$isPresented",
     )
 
+    val effectiveAlpha = if (backdrop == BackdropEffect.BlurOnly) 0f else scrimAlpha.value
+
     // Entkoppelte Blende (M3-Verhalten): eigene Animation auf die Sichtbarkeit statt am Offset.
     val independentAlpha by animateFloatAsState(
         targetValue = if (state.targetValue != Detent.Hidden) 1f else 0f,
@@ -130,6 +140,10 @@ fun DetentSheet(
                 .fillMaxSize()
                 .graphicsLayer {
                     val progress = state.sheetFraction()
+                    if (backdrop != BackdropEffect.ScrimOnly && progress > 0.01f) {
+                        val radius = MaxBlurRadius * progress
+                        renderEffect = BlurEffect(radius.toPx(), radius.toPx(), TileMode.Decal)
+                    }
                     when (contentEffect) {
                         ContentEffect.Static -> Unit
 
@@ -152,12 +166,12 @@ fun DetentSheet(
                     .fillMaxSize()
                     .graphicsLayer {
                         alpha = when (scrimMode) {
-                            ScrimMode.LinearToOffset -> state.sheetFraction() * scrimAlpha.value
+                            ScrimMode.LinearToOffset -> state.sheetFraction() * effectiveAlpha
                             ScrimMode.EasedToOffset ->
-                                FastOutSlowInEasing.transform(state.sheetFraction()) * scrimAlpha.value
+                                FastOutSlowInEasing.transform(state.sheetFraction()) * effectiveAlpha
 
-                            ScrimMode.FullAtMedium -> state.fractionUpToMedium() * scrimAlpha.value
-                            ScrimMode.IndependentFade -> independentAlpha * scrimAlpha.value
+                            ScrimMode.FullAtMedium -> state.fractionUpToMedium() * effectiveAlpha
+                            ScrimMode.IndependentFade -> independentAlpha * effectiveAlpha
                         }
                     }
                     .background(scrimColor)
@@ -188,7 +202,20 @@ fun DetentSheet(
                         flingBehavior = flingBehavior,
                     ),
             ) {
-                Box(Modifier.detentLayout(state, topInset, skipPartial, allowLarge)) {
+                Column(Modifier.detentLayout(state, topInset, skipPartial, allowLarge)) {
+                    // Fester Kopf: scrollt nicht mit, bleibt damit immer als Ziehgriff erreichbar.
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(
+                            Modifier
+                                .size(width = 36.dp, height = 4.dp)
+                                .background(handleColor, RoundedCornerShape(2.dp)),
+                        )
+                    }
                     sheetContent()
                 }
             }
@@ -221,6 +248,8 @@ fun DetentSheet(
 
 /** Misst den Content und setzt die Anchors im selben Layout-Pass (siehe Issue #7). */
 private const val MediumFractionWhenContentOverflows = 0.5f
+
+private val MaxBlurRadius = 24.dp
 
 private fun Modifier.detentLayout(
     state: AnchoredDraggableState<Detent>,

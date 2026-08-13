@@ -49,7 +49,8 @@ fun DetentLayoutPrototype() {
     var motion by remember { mutableStateOf(MotionVariant.SpringIosLike) }
     var scrimMode by remember { mutableStateOf(ScrimMode.LinearToOffset) }
     var scrimAlpha by remember { mutableStateOf(ScrimAlpha.Material) }
-    var contentEffect by remember { mutableStateOf(ContentEffect.Static) }
+    var contentEffect by remember { mutableStateOf(ContentEffect.Scaled) }
+    var backdrop by remember { mutableStateOf(BackdropEffect.ScrimOnly) }
     var darkBackground by remember { mutableStateOf(false) }
 
     val appBackground = if (darkBackground) Color(0xFF121212) else Color.White
@@ -63,7 +64,9 @@ fun DetentLayoutPrototype() {
         scrimMode = scrimMode,
         scrimAlpha = scrimAlpha,
         scrimColor = Color.Black,
+        backdrop = backdrop,
         sheetBackground = if (darkBackground) Color(0xFF1E1E1E) else Color(0xFFF7F7F7),
+        handleColor = if (darkBackground) Color(0x66FFFFFF) else Color(0x33000000),
         contentEffect = contentEffect,
         onDismiss = { isPresented = false },
         appContent = {
@@ -133,6 +136,16 @@ fun DetentLayoutPrototype() {
                     }
                 }
 
+                BasicText("Hintergrund-Effekt", style = heading.copy(color = onApp))
+                FlowRow {
+                    BackdropEffect.entries.forEach {
+                        ProtoChip(it.label, selected = it == backdrop, onApp = onApp) {
+                            backdrop = it
+                        }
+                    }
+                }
+                BasicText(backdrop.detail, style = mono.copy(color = onApp))
+
                 BasicText("App-Content unter dem Sheet", style = heading.copy(color = onApp))
                 FlowRow {
                     ContentEffect.entries.forEach {
@@ -175,14 +188,6 @@ private fun SheetContent(
         modifier = Modifier.fillMaxWidth().then(scrollModifier).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Box(
-            Modifier
-                .align(Alignment.CenterHorizontally)
-                .padding(bottom = 4.dp)
-                .height(4.dp)
-                .fillMaxWidth(0.12f)
-                .background(onSheet.copy(alpha = 0.3f), RoundedCornerShape(2.dp)),
-        )
         BasicText("Sheet-Content — ${size.blocks} Blöcke", style = heading.copy(color = onSheet))
         ProtoChip("schließen", onApp = onSheet, onClick = onDismiss)
         repeat(size.blocks) { index ->
