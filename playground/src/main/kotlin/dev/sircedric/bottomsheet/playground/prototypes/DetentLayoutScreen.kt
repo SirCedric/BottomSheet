@@ -56,6 +56,8 @@ fun DetentLayoutPrototype() {
     val appBackground = if (darkBackground) Color(0xFF121212) else Color.White
     val onApp = if (darkBackground) Color(0xFFEDEDED) else Color.Black
 
+    Box(Modifier.fillMaxSize().background(appBackground))
+
     DetentSheet(
         isPresented = isPresented,
         skipPartial = skipPartial,
