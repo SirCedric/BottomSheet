@@ -7,11 +7,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.text.BasicText
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import dev.sircedric.bottomsheet.playground.prototypes.HostMechanicsPrototype
 
 class PlaygroundActivity : ComponentActivity() {
 
@@ -19,14 +17,8 @@ class PlaygroundActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.White)
-                    .safeDrawingPadding(),
-                contentAlignment = Alignment.Center,
-            ) {
-                BasicText("Playground")
+            Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+                HostMechanicsPrototype()
             }
         }
     }
