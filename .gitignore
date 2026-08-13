@@ -35,3 +35,4 @@ google-services.json
 
 # Dokumentation wird getrackt, auch wenn eine globale Ignore-Regel docs/ ausschliesst
 !docs/
+!CONTEXT.md
