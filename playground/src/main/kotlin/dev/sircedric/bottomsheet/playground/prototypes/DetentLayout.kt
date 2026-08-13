@@ -93,6 +93,7 @@ object DetentMetrics {
 fun DetentSheet(
     isPresented: Boolean,
     skipPartial: Boolean,
+    allowLarge: Boolean,
     motion: MotionVariant,
     scrimMode: ScrimMode,
     scrimAlpha: ScrimAlpha,
@@ -187,7 +188,7 @@ fun DetentSheet(
                         flingBehavior = flingBehavior,
                     ),
             ) {
-                Box(Modifier.detentLayout(state, topInset, skipPartial)) {
+                Box(Modifier.detentLayout(state, topInset, skipPartial, allowLarge)) {
                     sheetContent()
                 }
             }
@@ -205,7 +206,7 @@ fun DetentSheet(
             }
     }
 
-    LaunchedEffect(isPresented, skipPartial, motion) {
+    LaunchedEffect(isPresented, skipPartial, allowLarge, motion) {
         while (state.anchors.size == 0) {
             withFrameNanos { }
         }
@@ -219,10 +220,13 @@ fun DetentSheet(
 }
 
 /** Misst den Content und setzt die Anchors im selben Layout-Pass (siehe Issue #7). */
+private const val MediumFractionWhenContentOverflows = 0.5f
+
 private fun Modifier.detentLayout(
     state: AnchoredDraggableState<Detent>,
     topInset: Int,
     skipPartial: Boolean,
+    allowLarge: Boolean,
 ): Modifier = layout { measurable, constraints ->
     val containerHeight = constraints.maxHeight
     val largeHeight = (containerHeight - topInset).coerceAtLeast(0)
@@ -231,14 +235,24 @@ private fun Modifier.detentLayout(
         constraints.copy(minWidth = 0, minHeight = 0, maxHeight = largeHeight),
     )
     val contentHeight = placeable.height
-    val mediumDropped = skipPartial || contentHeight >= largeHeight
+
+    // Revision der Kappungs-Regel aus #7: medium fällt bei zu hohem Content nicht mehr weg,
+    // sondern bekommt eine feste Höhe, damit die Zwischenstufe erhalten bleibt.
+    val mediumHeight = if (contentHeight >= largeHeight) {
+        (largeHeight * MediumFractionWhenContentOverflows).roundToInt()
+    } else {
+        contentHeight
+    }
+    val mediumDropped = skipPartial && allowLarge
 
     val anchors = DraggableAnchors {
         Detent.Hidden at containerHeight.toFloat()
         if (!mediumDropped) {
-            Detent.Medium at (containerHeight - contentHeight).toFloat()
+            Detent.Medium at (containerHeight - mediumHeight).toFloat()
         }
-        Detent.Large at topInset.toFloat()
+        if (allowLarge) {
+            Detent.Large at topInset.toFloat()
+        }
     }
     state.updateAnchors(anchors)
 
@@ -248,7 +262,7 @@ private fun Modifier.detentLayout(
             appendLine("topInset    = $topInset px")
             appendLine("largeHeight = $largeHeight px")
             appendLine("content     = $contentHeight px")
-            appendLine("medium      = ${if (mediumDropped) "entfällt" else "${containerHeight - contentHeight} px"}")
+            appendLine("medium      = ${if (mediumDropped) "entfällt" else "${containerHeight - mediumHeight} px (Höhe $mediumHeight)"}")
             append("anchors     = ${anchors.size}")
         },
     )

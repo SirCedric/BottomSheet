@@ -44,6 +44,7 @@ private enum class ContentSize(val label: String, val blocks: Int) {
 fun DetentLayoutPrototype() {
     var isPresented by remember { mutableStateOf(false) }
     var skipPartial by remember { mutableStateOf(false) }
+    var allowLarge by remember { mutableStateOf(true) }
     var contentSize by remember { mutableStateOf(ContentSize.Medium) }
     var motion by remember { mutableStateOf(MotionVariant.SpringIosLike) }
     var scrimMode by remember { mutableStateOf(ScrimMode.LinearToOffset) }
@@ -57,6 +58,7 @@ fun DetentLayoutPrototype() {
     DetentSheet(
         isPresented = isPresented,
         skipPartial = skipPartial,
+        allowLarge = allowLarge,
         motion = motion,
         scrimMode = scrimMode,
         scrimAlpha = scrimAlpha,
@@ -86,6 +88,9 @@ fun DetentLayoutPrototype() {
                     ) { isPresented = !isPresented }
                     ProtoChip("skipPartial", selected = skipPartial, onApp = onApp) {
                         skipPartial = !skipPartial
+                    }
+                    ProtoChip("large erlaubt", selected = allowLarge, onApp = onApp) {
+                        allowLarge = !allowLarge
                     }
                     ProtoChip("dunkel", selected = darkBackground, onApp = onApp) {
                         darkBackground = !darkBackground
