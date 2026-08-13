@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,8 +30,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val mono = TextStyle(fontSize = 12.sp, fontFamily = FontFamily.Monospace)
-private val heading = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold)
+private val mono = TextStyle(fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+private val heading = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold)
 
 private enum class ContentSize(val label: String, val blocks: Int) {
     Small("klein", 2),
@@ -42,79 +43,110 @@ private enum class ContentSize(val label: String, val blocks: Int) {
 fun DetentLayoutPrototype() {
     var isPresented by remember { mutableStateOf(false) }
     var skipPartial by remember { mutableStateOf(false) }
-    var largeUsesSafeDrawing by remember { mutableStateOf(true) }
-    var composeEagerly by remember { mutableStateOf(true) }
     var contentSize by remember { mutableStateOf(ContentSize.Medium) }
-    var grown by remember { mutableStateOf(false) }
+    var motion by remember { mutableStateOf(MotionVariant.SpringIosLike) }
+    var scrimMode by remember { mutableStateOf(ScrimMode.LinearToOffset) }
+    var scrimAlpha by remember { mutableStateOf(ScrimAlpha.Material) }
+    var contentEffect by remember { mutableStateOf(ContentEffect.Static) }
+    var darkBackground by remember { mutableStateOf(false) }
 
-    Box(Modifier.fillMaxSize().background(Color.White)) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .safeDrawingPadding()
-                .padding(8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            BasicText("Detent-Layout — Prototyp zu Issue #7", style = heading)
+    val appBackground = if (darkBackground) Color(0xFF121212) else Color.White
+    val onApp = if (darkBackground) Color(0xFFEDEDED) else Color.Black
 
-            FlowRow {
-                ProtoChip(if (isPresented) "Sheet schließen" else "Sheet öffnen") {
-                    isPresented = !isPresented
-                }
-                ProtoChip("skipPartial", selected = skipPartial) { skipPartial = !skipPartial }
-            }
+    DetentSheet(
+        isPresented = isPresented,
+        skipPartial = skipPartial,
+        motion = motion,
+        scrimMode = scrimMode,
+        scrimAlpha = scrimAlpha,
+        scrimColor = Color.Black,
+        contentEffect = contentEffect,
+        onDismiss = { isPresented = false },
+        appContent = {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(appBackground)
+                    .safeDrawingPadding()
+                    .padding(8.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                BasicText(
+                    "Animation & Scrim — Prototyp zu Issue #9",
+                    style = heading.copy(color = onApp),
+                )
 
-            FlowRow {
-                ContentSize.entries.forEach { candidate ->
-                    ProtoChip(candidate.label, selected = candidate == contentSize) {
-                        contentSize = candidate
+                Row {
+                    ProtoChip(
+                        if (isPresented) "Sheet schließen" else "Sheet öffnen",
+                        onApp = onApp,
+                    ) { isPresented = !isPresented }
+                    ProtoChip("skipPartial", selected = skipPartial, onApp = onApp) {
+                        skipPartial = !skipPartial
+                    }
+                    ProtoChip("dunkel", selected = darkBackground, onApp = onApp) {
+                        darkBackground = !darkBackground
                     }
                 }
+
+                BasicText("Content", style = heading.copy(color = onApp))
+                FlowRow {
+                    ContentSize.entries.forEach {
+                        ProtoChip(it.label, selected = it == contentSize, onApp = onApp) {
+                            contentSize = it
+                        }
+                    }
+                }
+
+                BasicText("Enter-/Exit-Kurve", style = heading.copy(color = onApp))
+                FlowRow {
+                    MotionVariant.entries.forEach {
+                        ProtoChip(it.label, selected = it == motion, onApp = onApp) { motion = it }
+                    }
+                }
+                BasicText(motion.detail, style = mono.copy(color = onApp))
+
+                BasicText("Scrim-Kopplung", style = heading.copy(color = onApp))
+                FlowRow {
+                    ScrimMode.entries.forEach {
+                        ProtoChip(it.label, selected = it == scrimMode, onApp = onApp) {
+                            scrimMode = it
+                        }
+                    }
+                }
+                BasicText(scrimMode.detail, style = mono.copy(color = onApp))
+
+                BasicText("Max-Alpha", style = heading.copy(color = onApp))
+                FlowRow {
+                    ScrimAlpha.entries.forEach {
+                        ProtoChip(it.label, selected = it == scrimAlpha, onApp = onApp) {
+                            scrimAlpha = it
+                        }
+                    }
+                }
+
+                BasicText("App-Content unter dem Sheet", style = heading.copy(color = onApp))
+                FlowRow {
+                    ContentEffect.entries.forEach {
+                        ProtoChip(it.label, selected = it == contentEffect, onApp = onApp) {
+                            contentEffect = it
+                        }
+                    }
+                }
+
+                BasicText("Messung", style = heading.copy(color = onApp))
+                BasicText(DetentMetrics.text, style = mono.copy(color = onApp))
             }
-
-            FlowRow {
-                ProtoChip(
-                    if (largeUsesSafeDrawing) "large: safeDrawing" else "large: statusBars",
-                    selected = largeUsesSafeDrawing,
-                ) { largeUsesSafeDrawing = !largeUsesSafeDrawing }
-                ProtoChip(
-                    if (composeEagerly) "vorab komponiert" else "erst beim Öffnen",
-                    selected = composeEagerly,
-                ) { composeEagerly = !composeEagerly }
-            }
-
-            BasicText("Messung aus der Layout-Phase", style = heading)
-            BasicText(DetentMetrics.text, style = mono)
-            BasicText("measure passes = ${DetentMetrics.measurePasses}", style = mono)
-            ProtoChip("Zähler zurücksetzen") { DetentMetrics.reset() }
-        }
-
-        DetentSheet(
-            isPresented = isPresented,
-            skipPartial = skipPartial,
-            largeUsesSafeDrawing = largeUsesSafeDrawing,
-            composeEagerly = composeEagerly,
-            scrimMaxAlpha = 0.4f,
-            onDismiss = { isPresented = false },
-        ) {
-            SheetContent(
-                size = contentSize,
-                grown = grown,
-                onToggleGrow = { grown = !grown },
-                onDismiss = { isPresented = false },
-            )
-        }
-    }
+        },
+        sheetContent = {
+            SheetContent(size = contentSize, onDismiss = { isPresented = false })
+        },
+    )
 }
 
 @Composable
-private fun SheetContent(
-    size: ContentSize,
-    grown: Boolean,
-    onToggleGrow: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val blocks = size.blocks + if (grown) 4 else 0
+private fun SheetContent(size: ContentSize, onDismiss: () -> Unit) {
     val scrollModifier = if (size == ContentSize.Tall) {
         Modifier.verticalScroll(rememberScrollState())
     } else {
@@ -125,12 +157,16 @@ private fun SheetContent(
         modifier = Modifier.fillMaxWidth().then(scrollModifier).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        BasicText("Sheet-Content — $blocks Blöcke", style = heading)
-        FlowRow {
-            ProtoChip(if (grown) "schrumpfen" else "wachsen", onClick = onToggleGrow)
-            ProtoChip("schließen", onClick = onDismiss)
-        }
-        repeat(blocks) { index ->
+        Box(
+            Modifier
+                .padding(bottom = 4.dp)
+                .height(4.dp)
+                .fillMaxWidth(0.12f)
+                .background(Color(0xFFBDBDBD), RoundedCornerShape(2.dp)),
+        )
+        BasicText("Sheet-Content — ${size.blocks} Blöcke", style = heading)
+        ProtoChip("schließen", onApp = Color.Black, onClick = onDismiss)
+        repeat(size.blocks) { index ->
             Box(
                 Modifier
                     .fillMaxWidth()
@@ -149,6 +185,7 @@ private fun SheetContent(
 @Composable
 private fun ProtoChip(
     text: String,
+    onApp: Color,
     selected: Boolean = false,
     onClick: () -> Unit,
 ) {
@@ -156,13 +193,13 @@ private fun ProtoChip(
         modifier = Modifier
             .padding(2.dp)
             .background(
-                if (selected) Color(0xFFD6E4FF) else Color.Transparent,
+                if (selected) Color(0x552F6FED) else Color.Transparent,
                 RoundedCornerShape(4.dp),
             )
-            .border(1.dp, Color.DarkGray, RoundedCornerShape(4.dp))
+            .border(1.dp, onApp.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+            .padding(horizontal = 8.dp, vertical = 5.dp),
     ) {
-        BasicText(text, style = TextStyle(fontSize = 13.sp))
+        BasicText(text, style = TextStyle(fontSize = 12.sp, color = onApp))
     }
 }

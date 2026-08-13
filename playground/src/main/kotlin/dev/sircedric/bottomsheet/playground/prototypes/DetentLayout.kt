@@ -2,6 +2,8 @@ package dev.sircedric.bottomsheet.playground.prototypes
 
 import android.os.Handler
 import android.os.Looper
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,15 +39,11 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
 /**
- * Wegwerf-Prototyp für Issue #7 — Layout-Modell und Detent-Berechnung. Kein Library-Code.
+ * Wegwerf-Prototyp für Issue #7 (Layout, Anchors) und Issue #9 (Animation, Scrim).
  */
 
 enum class Detent { Hidden, Medium, Large }
 
-/**
- * Messwerte aus der Layout-Phase. Schreiben über den Handler, weil ein Snapshot-Write im
- * Measure-Pass, der in der Composition gelesen wird, Invalidierungsschleifen provoziert.
- */
 object DetentMetrics {
 
     private val handler = Handler(Looper.getMainLooper())
@@ -85,26 +82,101 @@ object DetentMetrics {
 fun DetentSheet(
     isPresented: Boolean,
     skipPartial: Boolean,
-    largeUsesSafeDrawing: Boolean,
-    composeEagerly: Boolean,
-    scrimMaxAlpha: Float,
+    motion: MotionVariant,
+    scrimMode: ScrimMode,
+    scrimAlpha: ScrimAlpha,
+    scrimColor: Color,
+    contentEffect: ContentEffect,
     onDismiss: () -> Unit,
-    content: @Composable () -> Unit,
+    appContent: @Composable () -> Unit,
+    sheetContent: @Composable () -> Unit,
 ) {
     val state = remember { AnchoredDraggableState(initialValue = Detent.Hidden) }
     val density = LocalDensity.current
-    val topInset = if (largeUsesSafeDrawing) {
-        WindowInsets.safeDrawing.getTop(density)
-    } else {
-        WindowInsets.statusBars.getTop(density)
-    }
+    val topInset = WindowInsets.safeDrawing.getTop(density)
     val flingBehavior = AnchoredDraggableDefaults.flingBehavior(state)
 
-    if (!isPresented && !composeEagerly) {
-        return
+    val interactive = state.settledValue != Detent.Hidden || state.targetValue != Detent.Hidden
+
+    // Entkoppelte Blende (M3-Verhalten): eigene Animation auf die Sichtbarkeit statt am Offset.
+    val independentAlpha by animateFloatAsState(
+        targetValue = if (state.targetValue != Detent.Hidden) 1f else 0f,
+        animationSpec = tween(durationMillis = 300),
+        label = "scrim",
+    )
+
+    Box(Modifier.fillMaxSize()) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    val progress = state.sheetFraction()
+                    when (contentEffect) {
+                        ContentEffect.Static -> Unit
+
+                        ContentEffect.Scaled -> {
+                            val factor = 1f - 0.08f * progress
+                            scaleX = factor
+                            scaleY = factor
+                        }
+
+                        ContentEffect.Translated -> translationY = -40.dp.toPx() * progress
+                    }
+                },
+        ) {
+            appContent()
+        }
+
+        if (isPresented || interactive) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        alpha = when (scrimMode) {
+                            ScrimMode.LinearToOffset -> state.sheetFraction() * scrimAlpha.value
+                            ScrimMode.EasedToOffset ->
+                                FastOutSlowInEasing.transform(state.sheetFraction()) * scrimAlpha.value
+
+                            ScrimMode.FullAtMedium -> state.fractionUpToMedium() * scrimAlpha.value
+                            ScrimMode.IndependentFade -> independentAlpha * scrimAlpha.value
+                        }
+                    }
+                    .background(scrimColor)
+                    .then(
+                        if (interactive) {
+                            Modifier.clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = onDismiss,
+                            )
+                        } else {
+                            Modifier
+                        },
+                    ),
+            )
+
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .offset { state.offsetOrHidden() }
+                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                    .background(Color(0xFFF7F7F7))
+                    .anchoredDraggable(
+                        state = state,
+                        reverseDirection = false,
+                        orientation = Orientation.Vertical,
+                        enabled = interactive,
+                        flingBehavior = flingBehavior,
+                    ),
+            ) {
+                Box(Modifier.detentLayout(state, topInset, skipPartial)) {
+                    sheetContent()
+                }
+            }
+        }
     }
 
-    LaunchedEffect(isPresented, skipPartial) {
+    LaunchedEffect(isPresented, skipPartial, motion) {
         while (state.anchors.size == 0) {
             withFrameNanos { }
         }
@@ -113,57 +185,11 @@ fun DetentSheet(
             state.anchors.hasPositionFor(Detent.Medium) -> Detent.Medium
             else -> Detent.Large
         }
-        state.animateTo(target, tween(durationMillis = 300))
-    }
-
-    // Vorab komponiert liegt der Scrim schon über der App. Ohne diese Sperre schluckt er
-    // mit alpha = 0 jeden Tap und die App ist taub.
-    val interactive = state.settledValue != Detent.Hidden || state.targetValue != Detent.Hidden
-
-    Box(Modifier.fillMaxSize()) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .graphicsLayer { alpha = state.scrimFraction() * scrimMaxAlpha }
-                .background(Color.Black)
-                .then(
-                    if (interactive) {
-                        Modifier.clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onDismiss,
-                        )
-                    } else {
-                        Modifier
-                    },
-                ),
-        )
-
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .offset { state.offsetOrHidden() }
-                .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-                .background(Color(0xFFF7F7F7))
-                .anchoredDraggable(
-                    state = state,
-                    reverseDirection = false,
-                    orientation = Orientation.Vertical,
-                    enabled = interactive,
-                    flingBehavior = flingBehavior,
-                ),
-        ) {
-            Box(Modifier.detentLayout(state, topInset, skipPartial)) {
-                content()
-            }
-        }
+        state.animateTo(target, motion.spec)
     }
 }
 
-/**
- * Misst den Content und setzt die Anchors im **selben** Layout-Pass. Genau deshalb ist keine
- * Vorab-Messung per SubcomposeLayout nötig und kein Frame flackert.
- */
+/** Misst den Content und setzt die Anchors im selben Layout-Pass (siehe Issue #7). */
 private fun Modifier.detentLayout(
     state: AnchoredDraggableState<Detent>,
     topInset: Int,
@@ -206,11 +232,26 @@ private fun AnchoredDraggableState<Detent>.offsetOrHidden(): IntOffset {
     return if (current.isNaN()) IntOffset(0, Int.MAX_VALUE / 2) else IntOffset(0, current.roundToInt())
 }
 
-private fun AnchoredDraggableState<Detent>.scrimFraction(): Float {
+/** 0 bei Hidden, 1 am obersten Anchor. */
+private fun AnchoredDraggableState<Detent>.sheetFraction(): Float {
     val current = offset
     if (current.isNaN() || anchors.size == 0) return 0f
     val hidden = anchors.positionOf(Detent.Hidden)
     val topMost = anchors.minPosition()
     if (hidden.isNaN() || topMost.isNaN() || hidden == topMost) return 0f
     return ((hidden - current) / (hidden - topMost)).coerceIn(0f, 1f)
+}
+
+/** 0 bei Hidden, 1 bereits bei medium — medium→large ändert nichts mehr. */
+private fun AnchoredDraggableState<Detent>.fractionUpToMedium(): Float {
+    val current = offset
+    if (current.isNaN() || anchors.size == 0) return 0f
+    val hidden = anchors.positionOf(Detent.Hidden)
+    val reference = if (anchors.hasPositionFor(Detent.Medium)) {
+        anchors.positionOf(Detent.Medium)
+    } else {
+        anchors.minPosition()
+    }
+    if (hidden.isNaN() || reference.isNaN() || hidden == reference) return 0f
+    return ((hidden - current) / (hidden - reference)).coerceIn(0f, 1f)
 }
