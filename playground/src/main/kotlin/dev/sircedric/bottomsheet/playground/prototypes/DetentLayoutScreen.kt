@@ -15,7 +15,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
@@ -42,6 +43,7 @@ private enum class ContentSize(val label: String, val blocks: Int) {
     Medium("mittel", 5),
     Tall("höher als large", 14),
     LongList("Liste, 200 Einträge", 200),
+    Pager("VerticalPager, 5 Seiten", 5),
 }
 
 @Composable
@@ -220,6 +222,36 @@ private fun SheetContent(
     onHandover: (FlingHandover) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    if (size == ContentSize.Pager) {
+        val pagerState = rememberPagerState(pageCount = { size.blocks })
+        VerticalPager(state = pagerState, modifier = Modifier.fillMaxWidth()) { page ->
+            Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                BasicText(
+                    "Seite $page von ${size.blocks} — settled ${pagerState.settledPage}",
+                    style = heading.copy(color = onSheet),
+                )
+                BasicText(
+                    NestedScrollMetrics.lastPhase,
+                    style = mono.copy(color = onSheet),
+                )
+                Row {
+                    ProtoChip("Zähler zurück", onApp = onSheet) { NestedScrollMetrics.reset() }
+                    ProtoChip("schließen", onApp = onSheet, onClick = onDismiss)
+                }
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .background(
+                            if (page % 2 == 0) Color(0xFFE3ECFF) else Color(0xFFEDEDED),
+                            RoundedCornerShape(6.dp),
+                        ),
+                )
+            }
+        }
+        return
+    }
+
     if (size == ContentSize.LongList) {
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
