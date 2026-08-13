@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,8 +44,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.drop
 
@@ -235,6 +239,16 @@ fun DetentSheet(
                                 .background(handleColor, RoundedCornerShape(2.dp)),
                         )
                     }
+                    // Wegwerf-Instrument: sitzt im festen Kopf, damit es nicht wegscrollt.
+                    BasicText(
+                        NestedScrollMetrics.lastPhase,
+                        style = TextStyle(
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            color = handleColor.copy(alpha = 1f),
+                        ),
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
                     sheetContent()
                 }
             }

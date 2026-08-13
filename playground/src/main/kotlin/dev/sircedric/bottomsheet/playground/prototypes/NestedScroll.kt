@@ -9,8 +9,11 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -68,11 +71,16 @@ object NestedScrollMetrics {
     private var passedPx = 0f
     private var flings = ""
     private var blocked = ""
+    private var takeovers = 0
 
     fun reset() {
         preCalls = 0; prePx = 0f; postCalls = 0; postPx = 0f
-        passedPx = 0f; flings = ""; blocked = ""
+        passedPx = 0f; flings = ""; blocked = ""; takeovers = 0
         publish()
+    }
+
+    fun takeover() {
+        takeovers++; publish()
     }
 
     fun pre(consumed: Float) {
@@ -100,6 +108,7 @@ object NestedScrollMetrics {
             append("pre ${preCalls}× ${prePx.toInt()}px")
             append("  post ${postCalls}× ${postPx.toInt()}px")
             append("  durch ${passedPx.toInt()}px")
+            if (takeovers > 0) append("  übernommen ${takeovers}×")
             if (flings.isNotEmpty()) append("\n$flings")
             if (blocked.isNotEmpty()) append("\nblockiert: $blocked")
         }
@@ -120,22 +129,50 @@ fun rememberSheetNestedScrollConnection(
     val interlockState = rememberUpdatedState(interlock)
     val handoverState = rememberUpdatedState(handover)
     val flingState = rememberUpdatedState(flingBehavior)
+    val scope = rememberCoroutineScope()
     return remember(state) {
-        SheetNestedScrollConnection(state, flingState, interlockState, handoverState)
+        SheetNestedScrollConnection(state, scope, flingState, interlockState, handoverState)
     }
 }
 
 private class SheetNestedScrollConnection(
     private val state: AnchoredDraggableState<Detent>,
+    private val scope: CoroutineScope,
     private val flingBehavior: State<TargetedFlingBehavior>,
     private val interlock: State<ScrollInterlock>,
     private val handover: State<FlingHandover>,
 ) : NestedScrollConnection {
 
     // Recherche #4: dispatchRawDelta umgeht die MutatorMutex — waehrend einer laufenden
-    // Animation wuerden beide um denselben Offset kaempfen.
-    private fun sheetCanMove(): Boolean =
-        !state.isAnimationRunning && !state.offset.isNaN() && state.anchors.size > 1
+    // Animation wuerden beide um denselben Offset kaempfen. Statt die Geste zu ignorieren
+    // (dann scrollt die Liste, waehrend das Sheet noch hereinfliegt) wird die Animation
+    // uebernommen: ein neuer anchoredDrag reisst die Mutex an sich und bricht sie ab.
+    // Kostet einen Frame, danach greift der normale Pfad.
+    private fun takeOverAnimation() {
+        if (!state.isAnimationRunning) return
+        NestedScrollMetrics.takeover()
+        android.util.Log.d(
+            "NestedScrollProto",
+            "Animation uebernommen bei offset=${state.offset.toInt()} target=${state.targetValue}",
+        )
+        scope.launch {
+            state.anchoredDrag { }
+            android.util.Log.d(
+                "NestedScrollProto",
+                "nach Uebernahme: offset=${state.offset.toInt()} " +
+                    "animating=${state.isAnimationRunning}",
+            )
+        }
+    }
+
+    private fun sheetCanMove(): Boolean {
+        if (state.offset.isNaN() || state.anchors.size <= 1) return false
+        if (state.isAnimationRunning) {
+            takeOverAnimation()
+            return false
+        }
+        return true
+    }
 
     override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
         val delta = available.y
