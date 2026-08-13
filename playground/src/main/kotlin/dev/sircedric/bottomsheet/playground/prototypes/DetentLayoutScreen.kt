@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -60,6 +61,7 @@ fun DetentLayoutPrototype() {
         scrimMode = scrimMode,
         scrimAlpha = scrimAlpha,
         scrimColor = Color.Black,
+        sheetBackground = if (darkBackground) Color(0xFF1E1E1E) else Color(0xFFF7F7F7),
         contentEffect = contentEffect,
         onDismiss = { isPresented = false },
         appContent = {
@@ -141,13 +143,23 @@ fun DetentLayoutPrototype() {
             }
         },
         sheetContent = {
-            SheetContent(size = contentSize, onDismiss = { isPresented = false })
+            SheetContent(
+                size = contentSize,
+                onSheet = if (darkBackground) Color(0xFFEDEDED) else Color.Black,
+                dark = darkBackground,
+                onDismiss = { isPresented = false },
+            )
         },
     )
 }
 
 @Composable
-private fun SheetContent(size: ContentSize, onDismiss: () -> Unit) {
+private fun SheetContent(
+    size: ContentSize,
+    onSheet: Color,
+    dark: Boolean,
+    onDismiss: () -> Unit,
+) {
     val scrollModifier = if (size == ContentSize.Tall) {
         Modifier.verticalScroll(rememberScrollState())
     } else {
@@ -160,24 +172,34 @@ private fun SheetContent(size: ContentSize, onDismiss: () -> Unit) {
     ) {
         Box(
             Modifier
+                .align(Alignment.CenterHorizontally)
                 .padding(bottom = 4.dp)
                 .height(4.dp)
                 .fillMaxWidth(0.12f)
-                .background(Color(0xFFBDBDBD), RoundedCornerShape(2.dp)),
+                .background(onSheet.copy(alpha = 0.3f), RoundedCornerShape(2.dp)),
         )
-        BasicText("Sheet-Content — ${size.blocks} Blöcke", style = heading)
-        ProtoChip("schließen", onApp = Color.Black, onClick = onDismiss)
+        BasicText("Sheet-Content — ${size.blocks} Blöcke", style = heading.copy(color = onSheet))
+        ProtoChip("schließen", onApp = onSheet, onClick = onDismiss)
         repeat(size.blocks) { index ->
             Box(
                 Modifier
                     .fillMaxWidth()
                     .height(56.dp)
                     .background(
-                        if (index % 2 == 0) Color(0xFFE3ECFF) else Color(0xFFEDEDED),
+                        when {
+                            dark && index % 2 == 0 -> Color(0xFF25324A)
+                            dark -> Color(0xFF2A2A2A)
+                            index % 2 == 0 -> Color(0xFFE3ECFF)
+                            else -> Color(0xFFEDEDED)
+                        },
                         RoundedCornerShape(6.dp),
                     ),
             ) {
-                BasicText("Block $index", style = mono, modifier = Modifier.padding(8.dp))
+                BasicText(
+                    "Block $index",
+                    style = mono.copy(color = onSheet),
+                    modifier = Modifier.padding(8.dp),
+                )
             }
         }
     }

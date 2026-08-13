@@ -26,6 +26,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
@@ -37,6 +39,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+import kotlinx.coroutines.flow.drop
 
 /**
  * Wegwerf-Prototyp für Issue #7 (Layout, Anchors) und Issue #9 (Animation, Scrim).
@@ -94,6 +97,7 @@ fun DetentSheet(
     scrimMode: ScrimMode,
     scrimAlpha: ScrimAlpha,
     scrimColor: Color,
+    sheetBackground: Color,
     contentEffect: ContentEffect,
     onDismiss: () -> Unit,
     appContent: @Composable () -> Unit,
@@ -174,7 +178,7 @@ fun DetentSheet(
                     .fillMaxWidth()
                     .offset { state.offsetOrHidden() }
                     .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-                    .background(Color(0xFFF7F7F7))
+                    .background(sheetBackground)
                     .anchoredDraggable(
                         state = state,
                         reverseDirection = false,
@@ -188,6 +192,17 @@ fun DetentSheet(
                 }
             }
         }
+    }
+
+    // Entscheidung aus Issue #8: rastet eine Geste auf Hidden, meldet die Library das sofort
+    // zurück — sonst sagt die App weiter "offen", während nichts mehr zu sehen ist.
+    val presentedNow by rememberUpdatedState(isPresented)
+    LaunchedEffect(state) {
+        snapshotFlow { state.settledValue }
+            .drop(1)
+            .collect { settled ->
+                if (settled == Detent.Hidden && presentedNow) onDismiss()
+            }
     }
 
     LaunchedEffect(isPresented, skipPartial, motion) {
