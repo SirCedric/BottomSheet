@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
@@ -108,6 +109,8 @@ fun DetentSheet(
     sheetBackground: Color,
     handleColor: Color,
     contentEffect: ContentEffect,
+    interlock: ScrollInterlock,
+    handover: FlingHandover,
     onDismiss: () -> Unit,
     appContent: @Composable () -> Unit,
     sheetContent: @Composable () -> Unit,
@@ -116,6 +119,12 @@ fun DetentSheet(
     val density = LocalDensity.current
     val topInset = WindowInsets.safeDrawing.getTop(density)
     val flingBehavior = AnchoredDraggableDefaults.flingBehavior(state)
+    val nestedScroll = rememberSheetNestedScrollConnection(
+        state = state,
+        flingBehavior = flingBehavior,
+        interlock = interlock,
+        handover = handover,
+    )
 
     val interactive = state.settledValue != Detent.Hidden || state.targetValue != Detent.Hidden
 
@@ -209,7 +218,8 @@ fun DetentSheet(
                         orientation = Orientation.Vertical,
                         enabled = interactive,
                         flingBehavior = flingBehavior,
-                    ),
+                    )
+                    .nestedScroll(nestedScroll),
             ) {
                 Column(Modifier.detentLayout(state, topInset, skipPartial, allowLarge)) {
                     // Fester Kopf: scrollt nicht mit, bleibt damit immer als Ziehgriff erreichbar.

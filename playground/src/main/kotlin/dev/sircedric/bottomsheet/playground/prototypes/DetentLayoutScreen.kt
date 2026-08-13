@@ -10,9 +10,12 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
@@ -38,6 +41,7 @@ private enum class ContentSize(val label: String, val blocks: Int) {
     Small("klein", 2),
     Medium("mittel", 5),
     Tall("höher als large", 14),
+    LongList("Liste, 200 Einträge", 200),
 }
 
 @Composable
@@ -52,6 +56,8 @@ fun DetentLayoutPrototype() {
     var contentEffect by remember { mutableStateOf(ContentEffect.Scaled) }
     var backdrop by remember { mutableStateOf(BackdropEffect.ScrimAndBlur) }
     var darkBackground by remember { mutableStateOf(false) }
+    var interlock by remember { mutableStateOf(ScrollInterlock.ContentFirst) }
+    var handover by remember { mutableStateOf(FlingHandover.Handover) }
 
     val appBackground = if (darkBackground) Color(0xFF121212) else Color.White
     val onApp = if (darkBackground) Color(0xFFEDEDED) else Color.Black
@@ -70,6 +76,8 @@ fun DetentLayoutPrototype() {
         sheetBackground = if (darkBackground) Color(0xFF1E1E1E) else Color(0xFFF7F7F7),
         handleColor = if (darkBackground) Color(0x66FFFFFF) else Color(0x33000000),
         contentEffect = contentEffect,
+        interlock = interlock,
+        handover = handover,
         onDismiss = { isPresented = false },
         appContent = {
             Column(
@@ -82,7 +90,7 @@ fun DetentLayoutPrototype() {
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 BasicText(
-                    "Animation & Scrim — Prototyp zu Issue #9",
+                    "Nested Scroll — Prototyp zu Issue #12",
                     style = heading.copy(color = onApp),
                 )
 
@@ -110,6 +118,26 @@ fun DetentLayoutPrototype() {
                         }
                     }
                 }
+
+                BasicText("Verzahnung Scroll ↔ Sheet", style = heading.copy(color = onApp))
+                FlowRow {
+                    ScrollInterlock.entries.forEach {
+                        ProtoChip(it.label, selected = it == interlock, onApp = onApp) {
+                            interlock = it
+                        }
+                    }
+                }
+                BasicText(interlock.detail, style = mono.copy(color = onApp))
+
+                BasicText("Fling-Übergabe", style = heading.copy(color = onApp))
+                FlowRow {
+                    FlingHandover.entries.forEach {
+                        ProtoChip(it.label, selected = it == handover, onApp = onApp) {
+                            handover = it
+                        }
+                    }
+                }
+                BasicText(handover.detail, style = mono.copy(color = onApp))
 
                 BasicText("Enter-/Exit-Kurve", style = heading.copy(color = onApp))
                 FlowRow {
@@ -160,6 +188,10 @@ fun DetentLayoutPrototype() {
                 BasicText("Messung", style = heading.copy(color = onApp))
                 BasicText(DetentMetrics.text, style = mono.copy(color = onApp))
                 BasicText(DetentMetrics.stateText, style = mono.copy(color = onApp))
+                BasicText(
+                    "nested      = ${NestedScrollMetrics.lastPhase}",
+                    style = mono.copy(color = onApp),
+                )
             }
         },
         sheetContent = {
@@ -167,6 +199,10 @@ fun DetentLayoutPrototype() {
                 size = contentSize,
                 onSheet = if (darkBackground) Color(0xFFEDEDED) else Color.Black,
                 dark = darkBackground,
+                interlock = interlock,
+                onInterlock = { interlock = it },
+                handover = handover,
+                onHandover = { handover = it },
                 onDismiss = { isPresented = false },
             )
         },
@@ -178,8 +214,74 @@ private fun SheetContent(
     size: ContentSize,
     onSheet: Color,
     dark: Boolean,
+    interlock: ScrollInterlock,
+    onInterlock: (ScrollInterlock) -> Unit,
+    handover: FlingHandover,
+    onHandover: (FlingHandover) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    if (size == ContentSize.LongList) {
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            item {
+                // Die Schalter liegen sonst hinter dem Scrim — im Sheet sind sie umschaltbar,
+                // ohne die Scroll-Position und den Detent zu verlieren.
+                Column {
+                    FlowRow {
+                        ScrollInterlock.entries.forEach {
+                            ProtoChip(it.label, selected = it == interlock, onApp = onSheet) {
+                                onInterlock(it)
+                            }
+                        }
+                    }
+                    FlowRow {
+                        FlingHandover.entries.forEach {
+                            ProtoChip(it.label, selected = it == handover, onApp = onSheet) {
+                                onHandover(it)
+                            }
+                        }
+                    }
+                    BasicText(
+                        NestedScrollMetrics.lastPhase,
+                        style = mono.copy(color = onSheet),
+                    )
+                    Row {
+                        ProtoChip("Zähler zurück", onApp = onSheet) {
+                            NestedScrollMetrics.reset()
+                        }
+                        ProtoChip("schließen", onApp = onSheet, onClick = onDismiss)
+                    }
+                }
+            }
+            items(size.blocks) { index ->
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .background(
+                            when {
+                                dark && index % 2 == 0 -> Color(0xFF25324A)
+                                dark -> Color(0xFF2A2A2A)
+                                index % 2 == 0 -> Color(0xFFE3ECFF)
+                                else -> Color(0xFFEDEDED)
+                            },
+                            RoundedCornerShape(6.dp),
+                        ),
+                ) {
+                    BasicText(
+                        "Eintrag $index von ${size.blocks}",
+                        style = mono.copy(color = onSheet),
+                        modifier = Modifier.padding(8.dp),
+                    )
+                }
+            }
+        }
+        return
+    }
+
     val scrollModifier = if (size == ContentSize.Tall) {
         Modifier.verticalScroll(rememberScrollState())
     } else {
