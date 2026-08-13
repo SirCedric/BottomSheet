@@ -119,13 +119,22 @@ fun DetentSheet(
 
     val interactive = state.settledValue != Detent.Hidden || state.targetValue != Detent.Hidden
 
+    // Entscheidung: der Scrim nimmt Taps erst an, wenn das Sheet zur Ruhe gekommen ist —
+    // sonst schliesst ein hektischer Doppeltipp das Sheet noch waehrend des Aufblendens.
+    val scrimTappable = state.settledValue != Detent.Hidden && !state.isAnimationRunning
+
     DetentMetrics.publishState(
         "offset=${state.offset.let { if (it.isNaN()) "NaN" else it.roundToInt().toString() }}" +
             "  settled=${state.settledValue}  target=${state.targetValue}" +
             "  animating=${state.isAnimationRunning}  presented=$isPresented",
     )
 
-    val effectiveAlpha = if (backdrop == BackdropEffect.BlurOnly) 0f else scrimAlpha.value
+    // Entschieden: mit Blur tritt der Scrim zurück, weil der Blur die Trennung schon leistet.
+    val effectiveAlpha = when (backdrop) {
+        BackdropEffect.BlurOnly -> 0f
+        BackdropEffect.ScrimAndBlur -> ScrimAlphaWithBlur
+        BackdropEffect.ScrimOnly -> scrimAlpha.value
+    }
 
     // Entkoppelte Blende (M3-Verhalten): eigene Animation auf die Sichtbarkeit statt am Offset.
     val independentAlpha by animateFloatAsState(
@@ -176,7 +185,7 @@ fun DetentSheet(
                     }
                     .background(scrimColor)
                     .then(
-                        if (interactive) {
+                        if (scrimTappable) {
                             Modifier.clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
@@ -250,6 +259,8 @@ fun DetentSheet(
 private const val MediumFractionWhenContentOverflows = 0.5f
 
 private val MaxBlurRadius = 24.dp
+
+private const val ScrimAlphaWithBlur = 0.16f
 
 private fun Modifier.detentLayout(
     state: AnchoredDraggableState<Detent>,

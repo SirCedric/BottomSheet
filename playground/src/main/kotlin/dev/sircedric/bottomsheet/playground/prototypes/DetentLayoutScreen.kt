@@ -50,7 +50,7 @@ fun DetentLayoutPrototype() {
     var scrimMode by remember { mutableStateOf(ScrimMode.LinearToOffset) }
     var scrimAlpha by remember { mutableStateOf(ScrimAlpha.Material) }
     var contentEffect by remember { mutableStateOf(ContentEffect.Scaled) }
-    var backdrop by remember { mutableStateOf(BackdropEffect.ScrimOnly) }
+    var backdrop by remember { mutableStateOf(BackdropEffect.ScrimAndBlur) }
     var darkBackground by remember { mutableStateOf(false) }
 
     val appBackground = if (darkBackground) Color(0xFF121212) else Color.White
