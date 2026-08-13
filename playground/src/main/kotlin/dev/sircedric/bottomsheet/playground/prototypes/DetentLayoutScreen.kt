@@ -137,6 +137,7 @@ fun DetentLayoutPrototype() {
 
                 BasicText("Messung", style = heading.copy(color = onApp))
                 BasicText(DetentMetrics.text, style = mono.copy(color = onApp))
+                BasicText(DetentMetrics.stateText, style = mono.copy(color = onApp))
             }
         },
         sheetContent = {

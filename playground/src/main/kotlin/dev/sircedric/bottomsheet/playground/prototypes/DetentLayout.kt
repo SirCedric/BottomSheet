@@ -54,6 +54,14 @@ object DetentMetrics {
     var measurePasses by mutableStateOf(0)
         private set
 
+    var stateText by mutableStateOf("")
+        private set
+
+    fun publishState(value: String) {
+        if (value == stateText) return
+        handler.post { stateText = value }
+    }
+
     private var lastPublished: String? = null
     private var passCount = 0
 
@@ -97,6 +105,12 @@ fun DetentSheet(
     val flingBehavior = AnchoredDraggableDefaults.flingBehavior(state)
 
     val interactive = state.settledValue != Detent.Hidden || state.targetValue != Detent.Hidden
+
+    DetentMetrics.publishState(
+        "offset=${state.offset.let { if (it.isNaN()) "NaN" else it.roundToInt().toString() }}" +
+            "  settled=${state.settledValue}  target=${state.targetValue}" +
+            "  animating=${state.isAnimationRunning}  presented=$isPresented",
+    )
 
     // Entkoppelte Blende (M3-Verhalten): eigene Animation auf die Sichtbarkeit statt am Offset.
     val independentAlpha by animateFloatAsState(
