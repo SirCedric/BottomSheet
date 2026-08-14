@@ -19,7 +19,7 @@ Eine benannte Rastposition, auf der ein Sheet zur Ruhe kommt. Es gibt genau drei
 _Avoid_: Rastpunkt, Snap-Punkt, State, Stop
 
 **Medium**:
-Der Detent, auf dem das Sheet genau so hoch ist wie sein Content. Entfällt, wenn der Content mindestens so hoch wie `Large` ist.
+Der Detent, auf dem das Sheet genau so hoch ist wie sein Content. Ist der Content mindestens so hoch wie `Large`, liegt `Medium` bei der halben Höhe von `Large`.
 _Avoid_: Partial, Half, Peek
 
 **Large**:
@@ -65,6 +65,10 @@ _Avoid_: User Dismiss, Manual Dismiss, Swipe-to-dismiss
 **Dismiss-Versuch**:
 Eine Nutzergeste, die ein Dismiss ausgelöst hätte, aber gesperrt war. Er ist ein eigenes Ereignis, weil die App darauf antworten können muss, etwa mit einer Rückfrage vor Datenverlust.
 _Avoid_: Failed Dismiss, Blocked Dismiss, Abgelehnter Dismiss
+
+**Expand-Versuch**:
+Eine Nutzergeste nach oben, die das Sheet auf `Large` gebracht hätte, aber gesperrt war. Das Gegenstück zum Dismiss-Versuch an der oberen Kante — ein eigenes Ereignis, weil dabei nichts geschlossen wird.
+_Avoid_: Expand Attempt, Vergrößerungsversuch, Failed Expand
 
 **Commit**:
 Der Moment, in dem eine Geste ihr Ergebnis festlegt — der Finger hebt ab und das Ziel steht fest. Er liegt vor der Animation dorthin, nicht danach.
