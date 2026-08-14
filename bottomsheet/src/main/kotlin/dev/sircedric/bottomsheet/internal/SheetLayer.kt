@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +39,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -64,6 +66,7 @@ import dev.sircedric.bottomsheet.BottomSheetMotion
 import dev.sircedric.bottomsheet.BottomSheetScope
 import dev.sircedric.bottomsheet.LocalDragHandleColor
 import dev.sircedric.bottomsheet.PresentationDetent
+import dev.sircedric.bottomsheet.SheetDetents
 import androidx.compose.ui.graphics.Shape
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.roundToInt
@@ -398,9 +401,9 @@ private fun sheetOffsetPx(state: AnchoredDraggableState<Detent>, rubberBand: She
  */
 private fun Modifier.sheetLayout(
     state: AnchoredDraggableState<Detent>,
-    anchorsState: androidx.compose.runtime.MutableState<SheetAnchors?>,
+    anchorsState: MutableState<SheetAnchors?>,
     topInset: Int,
-    detents: dev.sircedric.bottomsheet.SheetDetents,
+    detents: SheetDetents,
     includeHidden: Boolean,
 ): Modifier = layout { measurable, constraints ->
     val containerHeight = constraints.maxHeight
@@ -433,7 +436,7 @@ private fun Modifier.sheetLayout(
 
 private class SheetScopeImpl(
     private val state: AnchoredDraggableState<Detent>,
-    private val detents: dev.sircedric.bottomsheet.SheetDetents,
+    private val detents: SheetDetents,
     private val scope: CoroutineScope,
     private val motionProvider: () -> BottomSheetMotion,
 ) : BottomSheetScope {
@@ -470,28 +473,28 @@ private class SheetNestedScrollConnection(
 ) : NestedScrollConnection {
 
     override fun onPreScroll(
-        available: androidx.compose.ui.geometry.Offset,
+        available: Offset,
         source: NestedScrollSource,
-    ): androidx.compose.ui.geometry.Offset {
-        if (!usable(source)) return androidx.compose.ui.geometry.Offset.Zero
+    ): Offset {
+        if (!usable(source)) return Offset.Zero
         val delta = available.y
         if (!NestedScrollRules.sheetConsumesPreScroll(delta, canMoveUp())) {
-            return androidx.compose.ui.geometry.Offset.Zero
+            return Offset.Zero
         }
-        return androidx.compose.ui.geometry.Offset(0f, consume(delta))
+        return Offset(0f, consume(delta))
     }
 
     override fun onPostScroll(
-        consumed: androidx.compose.ui.geometry.Offset,
-        available: androidx.compose.ui.geometry.Offset,
+        consumed: Offset,
+        available: Offset,
         source: NestedScrollSource,
-    ): androidx.compose.ui.geometry.Offset {
-        if (!usable(source)) return androidx.compose.ui.geometry.Offset.Zero
+    ): Offset {
+        if (!usable(source)) return Offset.Zero
         val delta = available.y
         if (!NestedScrollRules.sheetConsumesPostScroll(delta, canMoveDown())) {
-            return androidx.compose.ui.geometry.Offset.Zero
+            return Offset.Zero
         }
-        return androidx.compose.ui.geometry.Offset(0f, consume(delta))
+        return Offset(0f, consume(delta))
     }
 
     override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {

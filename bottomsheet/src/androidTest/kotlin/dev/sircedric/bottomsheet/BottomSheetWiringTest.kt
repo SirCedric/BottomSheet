@@ -19,9 +19,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -45,10 +47,10 @@ private const val SheetTag = "sheet"
 private const val AppTag = "app"
 private const val HandleTag = "handle"
 
-private fun hasAction(key: androidx.compose.ui.semantics.SemanticsPropertyKey<*>) =
+private fun hasAction(key: SemanticsPropertyKey<*>) =
     SemanticsMatcher.keyIsDefined(key)
 
-private fun lacksAction(key: androidx.compose.ui.semantics.SemanticsPropertyKey<*>) =
+private fun lacksAction(key: SemanticsPropertyKey<*>) =
     SemanticsMatcher.keyNotDefined(key)
 
 @RunWith(AndroidJUnit4::class)
@@ -58,7 +60,7 @@ class BottomSheetWiringTest {
     val rule = createComposeRule()
 
     @Test
-    fun modifierOhneHostKrachtMitEigenerNachricht() {
+    fun modifierWithoutHostFailsWithOwnMessage() {
         val error = runCatching {
             rule.setContent {
                 Box(Modifier.bottomSheet(isPresented = false, onDismissRequest = {}) { })
@@ -74,7 +76,7 @@ class BottomSheetWiringTest {
     }
 
     @Test
-    fun contentWirdErstBeimOeffnenKomponiert() {
+    fun contentIsComposedOnlyWhenOpening() {
         var compositions = 0
         var presented by mutableStateOf(false)
 
@@ -103,7 +105,7 @@ class BottomSheetWiringTest {
     }
 
     @Test
-    fun scrimTapSchliesstUndMeldetSonstDenVersuch() {
+    fun scrimTapClosesOrElseReportsTheAttempt() {
         var presented by mutableStateOf(true)
         var attempts = 0
         var dismissEnabled by mutableStateOf(true)
@@ -137,7 +139,7 @@ class BottomSheetWiringTest {
     }
 
     @Test
-    fun swipeUnterDenUnterstenDetentMeldetDismiss() {
+    fun swipeBelowTheLowestDetentReportsDismiss() {
         var presented by mutableStateOf(true)
 
         rule.setContent {
@@ -166,7 +168,7 @@ class BottomSheetWiringTest {
     }
 
     @Test
-    fun ownerVerlaesstDieCompositionUndMeldetDismiss() {
+    fun ownerLeavingTheCompositionReportsDismiss() {
         var ownerPresent by mutableStateOf(true)
         var dismissals = 0
 
@@ -191,7 +193,7 @@ class BottomSheetWiringTest {
     }
 
     @Test
-    fun appContentIstBeiOffenemSheetNichtMehrImSemanticsBaum() {
+    fun appContentLeavesTheSemanticsTreeWhilePresented() {
         var presented by mutableStateOf(false)
 
         rule.setContent {
@@ -217,7 +219,7 @@ class BottomSheetWiringTest {
     }
 
     @Test
-    fun aktionenFolgenDenDetentsUndDerDismissSperre() {
+    fun actionsFollowTheDetentsAndTheDismissLock() {
         var detents by mutableStateOf(SheetDetents.MediumAndLarge)
         var dismissEnabled by mutableStateOf(true)
 
@@ -257,7 +259,7 @@ class BottomSheetWiringTest {
     }
 
     @Test
-    fun ohnePaneTitleErfindetDieLibraryKeinen() {
+    fun withoutAPaneTitleTheLibraryInventsNone() {
         rule.setContent {
             BottomSheetHost {
                 Box(
@@ -273,7 +275,7 @@ class BottomSheetWiringTest {
     }
 
     @Test
-    fun scrimErzeugtKeinenKlickbarenKnoten() {
+    fun scrimCreatesNoClickableNode() {
         rule.setContent {
             BottomSheetHost {
                 Box(
@@ -297,7 +299,7 @@ class BottomSheetWiringTest {
     }
 
     @Test
-    fun panelErzeugtKeinenFokussierbarenKnoten() {
+    fun panelCreatesNoFocusableNode() {
         rule.setContent {
             BottomSheetHost {
                 Box(
@@ -320,7 +322,7 @@ class BottomSheetWiringTest {
     }
 
     @Test
-    fun handleWirdBeiGesperrtenGestenVerworfen() {
+    fun handleIsDiscardedWhenGesturesAreLocked() {
         var gesturesEnabled by mutableStateOf(true)
 
         rule.setContent {
@@ -347,7 +349,7 @@ class BottomSheetWiringTest {
     }
 
     @Test
-    fun handleTapWechseltDenDetent() {
+    fun handleTapSwitchesTheDetent() {
         var current: PresentationDetent? = null
 
         rule.setContent {
@@ -378,10 +380,10 @@ class BottomSheetWiringTest {
     }
 }
 
-private fun androidx.compose.ui.test.junit4.ComposeContentTestRule.panel() =
+private fun ComposeContentTestRule.panel() =
     onAllNodes(hasAction(SemanticsProperties.PaneTitle)).onFirst()
 
-private fun androidx.compose.ui.test.junit4.ComposeContentTestRule.tapScrim() {
+private fun ComposeContentTestRule.tapScrim() {
     onRoot().performTouchInput { click(Offset(width / 2f, 40f)) }
     waitForIdle()
 }
