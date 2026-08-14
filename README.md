@@ -1,6 +1,6 @@
 # BottomSheet
 
-Ein Bottom Sheet für Jetpack Compose, das per **Modifier** an eine beliebige View gehängt wird und sich verhält wie SwiftUIs `.sheet` mit `presentationDetents`.
+A bottom sheet for Jetpack Compose that attaches to any composable through a **modifier** and behaves like SwiftUI's `.sheet` with `presentationDetents`.
 
 ```kotlin
 Box(
@@ -13,30 +13,30 @@ Box(
 )
 ```
 
-- **Modifier statt Wrapper.** Das Sheet hängt am Composable, das es besitzt — nicht in einer Verschachtelung um den halben Screen.
-- **Material3-frei.** Abhängigkeiten sind ausschließlich `compose.foundation` und `compose.ui`. Wer M3 nutzt, kann; wer nicht, muss nicht.
-- **Zwei Detents.** `medium` auf Content-Höhe, `large` bis unter die Statusbar — einzeln oder zusammen erlaubt.
-- **Gesten fein steuerbar.** Zwischen „alles erlaubt" und „gar keine Geste" liegt der praktisch wichtigste Fall: verschieben ja, schließen nein — samt Callback, wenn der Nutzer es trotzdem versucht.
-- **Accessibility ohne Ressourcen.** Die Library schirmt den App-Content ab, hält den Fokus im Sheet und bietet die passenden Aktionen an, ohne einen einzigen eigenen String mitzubringen.
+- **A modifier, not a wrapper.** The sheet belongs to the composable that owns it, instead of nesting around half your screen.
+- **Material3-free.** The only dependencies are `compose.foundation` and `compose.ui`. Use M3 if you want to; you don't have to.
+- **Two detents.** `medium` at content height, `large` up to the status bar — allowed individually or together.
+- **Fine-grained gesture control.** Between "everything goes" and "no gestures at all" sits the case that actually matters: resize yes, dismiss no — with a callback for when the user tries anyway.
+- **Accessibility without resources.** The library shields the app content, keeps focus inside the sheet and exposes the right actions, without shipping a single string of its own.
 
-Ausführliche Begründungen zu jeder Entscheidung stehen in [`docs/SPEC.md`](docs/SPEC.md); die Begriffe definiert [`CONTEXT.md`](CONTEXT.md).
+The reasoning behind every decision lives in [`docs/SPEC.md`](docs/SPEC.md); the vocabulary is defined in [`CONTEXT.md`](CONTEXT.md).
 
 ---
 
-## Voraussetzungen
+## Requirements
 
 | | |
 | --- | --- |
 | minSdk | 29 |
 | compileSdk | 37 |
 | Compose | 1.12.0 (BOM 2026.08.00) |
-| Kotlin / JVM-Target | 2.4.10 / 17 |
+| Kotlin / JVM target | 2.4.10 / 17 |
 
-Der Hintergrund-Blur greift ab API 31; darunter dunkelt der Scrim entsprechend stärker ab. Das ist eine Plattformgrenze, kein Fallback.
+The background blur applies from API 31 on; below that the scrim darkens more to compensate. That is a platform boundary, not a fallback.
 
-## Einbinden
+## Installation
 
-Die Library ist **noch nicht veröffentlicht** — Maven-Central-Publishing ist ein eigener Schritt. Bis dahin als Projekt-Dependency einbinden:
+The library is **not published yet** — Maven Central publishing is a separate step. Until then, include it as a project dependency:
 
 ```kotlin
 // settings.gradle.kts
@@ -48,15 +48,15 @@ dependencies {
 }
 ```
 
-`compose.foundation` und `compose.ui` kommen als `api`-Dependencies mit, weil die Public API Compose-Typen exponiert.
+`compose.foundation` and `compose.ui` come along as `api` dependencies, because the public API exposes Compose types.
 
 ---
 
 ## Get started
 
-### 1. Host setzen
+### 1. Install the host
 
-Genau einmal, ganz oben um den Root der App:
+Exactly once, at the very top, around the root of your app:
 
 ```kotlin
 class MainActivity : ComponentActivity() {
@@ -72,9 +72,9 @@ class MainActivity : ComponentActivity() {
 }
 ```
 
-Der Host zeichnet **alle** Sheets der App und liegt über dem gesamten Content — auch über der Statusbar. Fehlt er, kracht der erste Modifier beim ersten Rendern mit einer eindeutigen Meldung.
+The host draws **every** sheet in the app and sits above all of your content — including the status bar. Without it, the first modifier fails on the first render with an unambiguous message.
 
-### 2. Sheet anhängen
+### 2. Attach a sheet
 
 ```kotlin
 var isPresented by remember { mutableStateOf(false) }
@@ -88,31 +88,31 @@ Box(
     ) {
         Column(Modifier.padding(16.dp)) {
             Text("Filter")
-            Button(onClick = { isPresented = false }) { Text("Fertig") }
+            Button(onClick = { isPresented = false }) { Text("Done") }
         }
     },
 )
 ```
 
-Das war es. Der Content wird erst beim Öffnen komponiert und bleibt bis zum Ende der Exit-Animation am Leben.
+That is all. The content is composed only when the sheet opens, and stays alive until the exit animation has finished.
 
 ---
 
-## Präsentieren und Schließen
+## Presenting and dismissing
 
-Der Zustand gehört der App: `isPresented` ist ein `Boolean`, kein Binding und kein State-Holder. Das passt zu einem `StateFlow` im ViewModel, aus dem sich ein `MutableState` nicht befüllen ließe.
+The state belongs to your app: `isPresented` is a `Boolean`, not a binding and not a state holder. That fits a `StateFlow` in a ViewModel, which could never populate a `MutableState` parameter.
 
-`onDismissRequest` feuert **nur**, wenn die Library das Schließen ausgelöst hat:
+`onDismissRequest` fires **only** when the library caused the dismissal:
 
-| Auslöser | `onDismissRequest` |
+| Trigger | `onDismissRequest` |
 | --- | --- |
-| Wischen, Scrim-Tap, Back | ✓ |
-| Owner verlässt die Composition (z. B. Wegscrollen aus einer `LazyColumn`) | ✓ |
-| App setzt selbst `isPresented = false` | — |
+| Swipe, scrim tap, back | ✓ |
+| Owner leaves the composition (scrolled out of a `LazyColumn`, say) | ✓ |
+| Your app sets `isPresented = false` itself | — |
 
-Der Callback feuert **sofort beim Commit der Geste**, nicht nach der Exit-Animation. Der Zustand der App und das Bild laufen so nie auseinander.
+The callback fires **the moment the gesture commits**, not after the exit animation, so your state and what is on screen never drift apart.
 
-> Der zweite Fall ist der, den man vergisst: Verlässt der Owner die Composition, während sein Sheet offen ist, verschwindet das Sheet — und ohne diese Meldung bliebe `isPresented` auf `true` hängen.
+> The second row is the one people forget: if the owner leaves the composition while its sheet is open, the sheet disappears — and without this report `isPresented` would stay stuck at `true`.
 
 ## Detents
 
@@ -120,29 +120,29 @@ Der Callback feuert **sofort beim Commit der Geste**, nicht nach der Exit-Animat
 Modifier.bottomSheet(
     isPresented = isPresented,
     onDismissRequest = { isPresented = false },
-    presentationDetents = SheetDetents.MediumAndLarge,   // Default
-    initialDetent = PresentationDetent.Medium,           // Default
+    presentationDetents = SheetDetents.MediumAndLarge,   // default
+    initialDetent = PresentationDetent.Medium,           // default
 ) { … }
 ```
 
-| Wert | Bedeutung |
+| Value | Meaning |
 | --- | --- |
-| `SheetDetents.Medium` | nur Content-Höhe |
-| `SheetDetents.Large` | nur bis unter die Statusbar |
-| `SheetDetents.MediumAndLarge` | beide |
-| `SheetDetents.of(…)` | für spätere freie Höhen vorbereitet |
+| `SheetDetents.Medium` | content height only |
+| `SheetDetents.Large` | up to the status bar only |
+| `SheetDetents.MediumAndLarge` | both |
+| `SheetDetents.of(…)` | prepared for free heights later |
 
-`SheetDetents` hat einen privaten Konstruktor, `of()` verlangt ein erstes Argument — die leere Menge ist zur Compile-Zeit ausgeschlossen.
+`SheetDetents` has a private constructor and `of()` requires a first argument, so the empty set is ruled out at compile time.
 
-**`medium`** ist so hoch wie der Content. Ist der Content mindestens so hoch wie `large`, liegt `medium` bei der Hälfte von `large`, statt wegzufallen — die Zwischenstufe bleibt also gerade dann erhalten, wenn am meisten Inhalt da ist.
+**`medium`** is as tall as your content. Once the content is at least as tall as `large`, `medium` sits at half of `large` instead of dropping out — the intermediate step survives exactly when there is the most to show.
 
-**`large`** misst an `safeDrawing`, nicht an der Statusbar: auf Geräten, deren Cutout die Statusbar überragt, bliebe das Sheet sonst unter der Kamera hängen.
+**`large`** measures against `safeDrawing` rather than the status bar: on devices whose cutout extends past the status bar, the sheet would otherwise get stuck under the camera.
 
-`initialDetent` gilt bei **jedem** Übergang von `false` nach `true` — eine neue Präsentation ist neu, nicht die Fortsetzung der letzten. Steht der Wert nicht in `presentationDetents`, greift der kleinste enthaltene.
+`initialDetent` applies on **every** transition from `false` to `true` — a new presentation is new, not a continuation of the last one. If the value is not part of `presentationDetents`, the smallest contained detent is used.
 
-## Gesten sperren
+## Locking gestures
 
-Zwei Schalter, beide positiv formuliert. `gesturesEnabled` gattert `interactiveDismissEnabled`.
+Two switches, both phrased positively. `gesturesEnabled` gates `interactiveDismissEnabled`.
 
 ```kotlin
 Modifier.bottomSheet(
@@ -153,43 +153,43 @@ Modifier.bottomSheet(
 ) { … }
 ```
 
-| | `gesturesEnabled` | `interactiveDismissEnabled` | Ergebnis |
+| | `gesturesEnabled` | `interactiveDismissEnabled` | Result |
 | --- | --- | --- | --- |
-| **A** | `true` | `true` | Default: verschieben und schließen |
-| **B** | `true` | `false` | verschieben ja, schließen nein |
-| **C** | `false` | egal | das Sheet reagiert auf gar keine Geste |
+| **A** | `true` | `true` | default: resize and dismiss |
+| **B** | `true` | `false` | resize yes, dismiss no |
+| **C** | `false` | ignored | the sheet reacts to no gesture at all |
 
-Spalte **B** ist der Formular-Fall: ungespeicherte Daten, der Nutzer darf zwischen `medium` und `large` wechseln, aber nicht wegwischen. Versucht er es doch, federt die Kante gedämpft zurück und **`onDismissAttempt`** feuert — beim Überschreiten von 48 dp Überzug, noch **während** die Geste läuft. Genau dann will man die Rückfrage sehen, nicht als Nachschlag.
+Column **B** is the form case: unsaved changes, the user may move between `medium` and `large` but must not swipe the sheet away. If they try anyway, the edge springs back with resistance and **`onDismissAttempt`** fires — on crossing 48 dp of overdrag, while the gesture is still running. That is exactly when you want to ask, not as an afterthought.
 
-**`onExpandAttempt`** ist das Gegenstück an der oberen Kante: es feuert, wenn `large` nicht erlaubt ist und der Nutzer trotzdem nach oben zieht. Bewusst ein eigener Callback — an der oberen Kante wird nichts geschlossen.
+**`onExpandAttempt`** is the counterpart at the upper edge: it fires when `large` is not allowed and the user pulls up regardless. Deliberately a separate callback — nothing is being closed at the top edge.
 
-In Spalte **C** feuert **kein** Callback: wo keine Interaktion vorgesehen ist, gibt es keinen Versuch. Der Drag-Handle wird dort ebenfalls verworfen, selbst wenn die App einen anfordert — ein Griff, an dem nichts passiert, wäre eine Falschaussage.
+In column **C** **no** callback fires: where no interaction is intended, there is no attempt. The drag handle is discarded there as well, even if your app supplies one — a handle that does nothing would be a lie.
 
-Back wird in **jeder** Konfiguration geschluckt, solange ein Sheet offen ist. Sonst navigiert die App hinter dem Sheet weg.
+Back is swallowed in **every** configuration while a sheet is open. Otherwise your app navigates away behind it.
 
-## Content-Scope
+## Content scope
 
-Der Sheet-Content läuft in einem `BottomSheetScope`:
+The sheet content runs inside a `BottomSheetScope`:
 
 ```kotlin
 Modifier.bottomSheet(…) {
     Column {
-        Text(if (currentDetent == PresentationDetent.Large) "Alle Filter" else "Filter")
+        Text(if (currentDetent == PresentationDetent.Large) "All filters" else "Filters")
 
         Button(onClick = { animateTo(PresentationDetent.Large) }) {
-            Text("Mehr anzeigen")
+            Text("Show more")
         }
     }
 }
 ```
 
-`currentDetent` ist der **geruhte** Detent, nicht der laufende Offset — der Content rekomponiert also nicht pro Frame. `animateTo` ist absichtlich nicht `suspend`; die Call Site braucht kein `rememberCoroutineScope()`.
+`currentDetent` is the **settled** detent, not the live offset, so your content does not recompose every frame. `animateTo` is deliberately not `suspend`; the call site needs no `rememberCoroutineScope()`.
 
-Ein `dismiss()` gibt es nicht: die App hält `isPresented` in der Hand, und ein zweiter Schließweg daran vorbei ließe Zustand und Bild auseinanderlaufen.
+There is no `dismiss()`: your app owns `isPresented`, and a second way to close that bypasses it would let state and picture drift apart.
 
-## Scrollbarer Content
+## Scrollable content
 
-Für Scrollbarkeit sorgt die App — die Library legt keinen Scroll-Container um den Content, weil der mit `LazyColumn`s der App kollidieren würde.
+Scrolling is your app's job — the library wraps no scroll container around your content, because it would clash with your own `LazyColumn`s.
 
 ```kotlin
 Modifier.bottomSheet(…) {
@@ -199,18 +199,18 @@ Modifier.bottomSheet(…) {
 }
 ```
 
-Die Verzahnung folgt der Konvention von Material3 und iOS:
+The interlocking follows the Material3 and iOS convention:
 
-- **Nach oben** gewinnt das Sheet **vor** dem Inhalt: aus `medium` expandiert es zuerst auf `large`, danach scrollt die Liste.
-- **Nach unten** scrollt zuerst der Inhalt; an der Listen-Oberkante nimmt der Zug das Sheet mit.
+- **Upwards** the sheet wins **before** the content: from `medium` it expands to `large` first, and only then does the list scroll.
+- **Downwards** the content scrolls first; at the top of the list the drag takes the sheet along.
 
-`VerticalPager` funktioniert; nur blättert aus `medium` die erste Aufwärtsgeste nicht, sondern expandiert das Sheet.
+`VerticalPager` works; the only wrinkle is that from `medium`, the first upward gesture expands the sheet instead of paging.
 
-Der **Drag-Handle** sitzt als fester Kopf über dem Content und scrollt nicht mit — er ist damit die immer erreichbare Ziehfläche. Wer ihn per `dragHandle = null` abschaltet und scrollbaren Content zeigt, bekommt eine Warnung im Log.
+The **drag handle** sits as a fixed header above the content and does not scroll with it, which makes it the always-reachable drag surface. Turn it off with `dragHandle = null` while showing scrollable content and the library logs a warning.
 
-## Aussehen
+## Appearance
 
-App-weit einmal am Host, pro Sheet überschreibbar am Modifier (`null` heißt „nimm die des Hosts"):
+Set once app-wide on the host, overridable per sheet on the modifier (`null` means "use the host's"):
 
 ```kotlin
 BottomSheetHost(
@@ -229,34 +229,34 @@ BottomSheetHost(
 | Parameter | Default |
 | --- | --- |
 | `colors.sheet` | `Color.White` |
-| `colors.handle` | `Color.Black` mit Alpha `0.4` |
+| `colors.handle` | `Color.Black` at alpha `0.4` |
 | `colors.scrim` | `Color.Black` |
-| `colors.scrimMaxAlpha` | `0.16` ab API 31, sonst `0.32` |
+| `colors.scrimMaxAlpha` | `0.16` from API 31, `0.32` below |
 | `motion.animationSpec` | `spring(0.9, 380)` |
-| `shape` | `RoundedCornerShape(28.dp)` oben |
-| `appContentMinScale` | `0.92` — `1f` schaltet die Skalierung ab |
-| `dragHandle` | `BottomSheetDefaults.DragHandle()`, `null` für keinen |
+| `shape` | `RoundedCornerShape(28.dp)` at the top |
+| `appContentMinScale` | `0.92` — `1f` turns the scaling off |
+| `dragHandle` | `BottomSheetDefaults.DragHandle()`, `null` for none |
 
-> **Dark Mode:** Der Default `sheet = Color.White` ist dunkel falsch, und die Library kann das nicht selbst lösen — sie ist M3-frei und kennt kein Theme. Eine Dark-Mode-App setzt `BottomSheetHost(colors = …)` **einmal**; genau dafür ist der App-weite Default da.
+> **Dark mode:** the default `sheet = Color.White` is wrong on dark backgrounds, and the library cannot fix that by itself — it is Material3-free and knows no theme. A dark-mode app sets `BottomSheetHost(colors = …)` **once**; that is what the app-wide default is for.
 
-Der Scrim folgt linear dem Offset und dunkelt bis `large` weiter nach. Der App-Content skaliert auf `1 − 0.08 × Fortschritt` und wird ab API 31 zusätzlich weichgezeichnet.
+The scrim follows the offset linearly and keeps darkening up to `large`. The app content scales to `1 − 0.08 × progress` and is additionally blurred from API 31 on.
 
-> Wer die Skalierung nutzt, braucht ein Window-Theme, dessen Hintergrund zum App-Theme passt — der skalierte Content legt am Rand die App-Wurzel frei, und die Library malt dort bewusst nichts.
+> If you use the scaling, give your window theme a background that matches your app theme — the scaled content exposes the app's root at the edges, and the library deliberately paints nothing there.
 
-## Insets und Tastatur
+## Insets and the keyboard
 
-Die Library konsumiert im Sheet-Content nur `safeDrawing.only(Bottom)` — Navbar, Gesture-Bar, IME und unteren Cutout. Alles andere wird durchgereicht. Ein separates `imePadding()` ist nicht nötig und wäre falsch: `safeDrawing` enthält das IME bereits.
+Inside the sheet content the library consumes only `safeDrawing.only(Bottom)` — navigation bar, gesture bar, IME and the bottom cutout. Everything else is passed through. A separate `imePadding()` is unnecessary and would be wrong: `safeDrawing` already includes the IME.
 
 ## Accessibility
 
-Die Library erledigt von sich aus:
+The library handles on its own:
 
-- **Abschirmung**: Bei offenem Sheet verschwindet der App-Content aus dem Semantics-Baum. Beim Dismiss-Commit ist er sofort wieder da, noch während die Exit-Animation läuft.
-- **Fokus-Trap**: Der Fokus wandert beim Öffnen ins Panel und kommt nicht heraus — auch bei Content ohne fokussierbares Element.
-- **Aktionen**: `Maximieren` / `Minimieren` in der jeweils möglichen Richtung, `Schließen` nur, wenn Nutzer-Dismiss erlaubt ist. Die Labels liefert das System lokalisiert.
-- **Scrim und Drag-Handle** tragen keine Semantics und tauchen im Baum nicht auf.
+- **Shielding**: while a sheet is open, the app content disappears from the semantics tree. On a dismiss commit it is back immediately, while the exit animation is still running.
+- **Focus trap**: focus moves into the panel when the sheet opens and does not escape — even for content without a focusable element.
+- **Actions**: expand and collapse in whichever direction is possible, dismiss only when a user dismiss is permitted. The system supplies the localized labels.
+- **Scrim and drag handle** carry no semantics and never show up in the tree.
 
-Zwei Hebel liegen bei der App, weil die Library **keine eigenen Strings** mitbringt:
+Two levers are yours, because the library ships **no strings of its own**:
 
 ```kotlin
 BottomSheetHost(
@@ -272,25 +272,25 @@ Modifier.bottomSheet(
 ) { … }
 ```
 
-Ohne `paneTitle` sagt beim Öffnen **nichts** an — Compose kann den TalkBack-Fokus nicht aktiv setzen, `paneTitle` ist der einzige Hebel dafür.
+Without a `paneTitle`, **nothing** is announced on open — Compose cannot move screen reader focus programmatically, and `paneTitle` is the only lever the platform offers for it.
 
-> **Wichtig bei gesperrtem Dismiss:** Mit `interactiveDismissEnabled = false` bietet die Library TalkBack **keine** Schließen-Aktion an. Das ist Absicht — eine Hintertür, die die Sperre aushebelt, wäre schlimmer. Die App muss dann selbst einen Schließen-Weg in den Sheet-Content legen.
+> **Important when dismissal is locked:** with `interactiveDismissEnabled = false` the library offers screen readers **no** dismiss action. That is deliberate — a back door that defeats the lock would be worse. Your app has to place a way to close inside the sheet content itself.
 
-## Rotation und Prozess-Tod
+## Rotation and process death
 
-`isPresented` gehört der App und überlebt, wenn sie es richtig hält. Die Library rettet den **Detent** und snappt beim Wiederherstellen dorthin zurück, statt erneut hereinzufahren — ein Sheet, das nach jeder Drehung neu aufblendet, behauptet eine Präsentation, die längst passiert ist.
+`isPresented` belongs to your app and survives if you hold it correctly. The library saves the **detent** and snaps back to it on restore instead of animating in again — a sheet that slides up after every rotation claims a presentation that happened long ago.
 
 ---
 
-## Nicht in v1
+## Not in v1
 
-- **Sheet-Stacking** — ein Sheet öffnet ein Sheet.
-- **Freie Detent-Höhen** (`.height(x)`, `.fraction(x)`). Der Typ ist dafür vorbereitet, die Layout- und Snapping-Regeln nicht.
-- **Tablet/Landscape**: maximale Breite, zentriertes Sheet.
-- **Material3-Theming-Artefakt**, das die M3-freie Kern-Library mit M3-Defaults verheiratet.
+- **Sheet stacking** — a sheet opening a sheet.
+- **Free detent heights** (`.height(x)`, `.fraction(x)`). The type is prepared for them; the layout and snapping rules are not.
+- **Tablet and landscape**: maximum width, centred sheet.
+- **A Material3 theming artifact** marrying the M3-free core with M3 defaults.
 
-Bewusst **nicht** konfigurierbar: Blur (hängt am API-Level), Nested-Scroll-Verzahnung, Rubber-Band-Werte, Gestenschwellen. Nachrüsten per defaultetem Parameter ist jederzeit möglich und nicht breaking — das ist der Grund, warum sie heute fehlen dürfen.
+Deliberately **not** configurable: the blur (it depends on the API level), the nested-scroll interlocking, the rubber-band values and the gesture thresholds. Adding a defaulted parameter later is always possible and never breaking — which is why they can be absent today.
 
-## Lizenz
+## License
 
-MIT — siehe [`LICENSE`](LICENSE).
+MIT — see [`LICENSE`](LICENSE).
