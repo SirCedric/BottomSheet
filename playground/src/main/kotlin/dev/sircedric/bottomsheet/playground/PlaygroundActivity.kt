@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import dev.sircedric.bottomsheet.playground.prototypes.DetentLayoutPrototype
+import dev.sircedric.bottomsheet.playground.prototypes.RubberBandPrototype
 
 class PlaygroundActivity : ComponentActivity() {
 
@@ -12,7 +12,7 @@ class PlaygroundActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
-            DetentLayoutPrototype()
+            RubberBandPrototype()
         }
     }
 }
