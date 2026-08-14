@@ -49,11 +49,11 @@ fun RubberBandPrototype() {
     var resistance by remember { mutableStateOf(Resistance.Asymptotic) }
     var factor by remember { mutableStateOf(0.35f) }
     var maxOver by remember { mutableStateOf(96.dp) }
-    var returnCurve by remember { mutableStateOf(ReturnCurve.SameAsDetent) }
-    var fling by remember { mutableStateOf(FlingBehaviourAtEdge.CarryVelocity) }
-    var trigger by remember { mutableStateOf(AttemptTrigger.OnRelease) }
+    var returnCurve by remember { mutableStateOf(ReturnCurve.Snappy) }
+    var fling by remember { mutableStateOf(FlingBehaviourAtEdge.Capped) }
+    var trigger by remember { mutableStateOf(AttemptTrigger.Threshold) }
     var threshold by remember { mutableStateOf(48.dp) }
-    var reportTopEdge by remember { mutableStateOf(false) }
+    var reportTopEdge by remember { mutableStateOf(true) }
 
     val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
 
