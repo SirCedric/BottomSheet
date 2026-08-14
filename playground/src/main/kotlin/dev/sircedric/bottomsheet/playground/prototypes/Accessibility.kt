@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -96,6 +97,13 @@ fun A11ySheet(
     val hasTwoDetents = switches.allowLarge
     val atLarge = state.settledValue == Detent.Large
 
+    val cycleDetent: () -> Unit = {
+        if (hasTwoDetents) {
+            val next = if (atLarge) Detent.Medium else Detent.Large
+            scope.launch { state.animateTo(next, SheetSpring) }
+        }
+    }
+
     Box(Modifier.fillMaxSize()) {
         Box(
             Modifier
@@ -153,7 +161,9 @@ fun A11ySheet(
                                 .focusRequester(panelFocus)
                                 .focusProperties { onExit = { cancelFocusChange() } }
                                 .focusGroup()
-                                .focusable()
+                                // focusTarget statt focusable: focusable() setzt Focused +
+                                // RequestFocus in die Semantics, woraus TalkBack eine Aktion baut.
+                                .focusTarget()
                         } else {
                             Modifier
                         },
@@ -202,7 +212,12 @@ fun A11ySheet(
             ) {
                 Column(Modifier.a11yLayout(state, topInset, switches, isPresented)) {
                     Box(
-                        Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                        Modifier
+                            .fillMaxWidth()
+                            .pointerInput(hasTwoDetents, atLarge) {
+                                detectTapGestures { cycleDetent() }
+                            }
+                            .padding(vertical = 12.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Box(
