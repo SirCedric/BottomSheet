@@ -3,28 +3,28 @@ package dev.sircedric.bottomsheet
 import androidx.compose.runtime.Immutable
 
 /**
- * Eine benannte Rastposition, auf der ein Sheet zur Ruhe kommt.
+ * A named resting position a sheet settles on.
  *
- * Bewusst ein Sealed Interface und kein Enum: freie Höhen nach dem Vorbild von SwiftUIs
- * `.height(x)` und `.fraction(x)` lassen sich so ohne Bruch der Binär-API ergänzen.
+ * Deliberately a sealed interface rather than an enum: free heights modelled on SwiftUI's
+ * `.height(x)` and `.fraction(x)` can be added later without breaking the binary API.
  *
- * Der geschlossene Zustand ist hier **nicht** vertreten — er wird über `isPresented` ausgedrückt.
+ * The closed state is **not** represented here — that is what `isPresented` expresses.
  */
 @Immutable
 public sealed interface PresentationDetent {
 
-    /** Das Sheet ist so hoch wie sein Content, höchstens jedoch halb so hoch wie [Large]. */
+    /** The sheet is as tall as its content, but at most half the height of [Large]. */
     public data object Medium : PresentationDetent
 
-    /** Das Sheet reicht bis unter die obere Kante des sicheren Zeichenbereichs. */
+    /** The sheet reaches up to the top edge of the safe drawing area. */
     public data object Large : PresentationDetent
 }
 
 /**
- * Die Menge der Detents, auf denen ein Sheet ruhen darf — garantiert nicht leer.
+ * The set of detents a sheet may rest on — guaranteed non-empty.
  *
- * Der Konstruktor ist privat und [of] erzwingt ein erstes Argument; eine leere Menge ist damit
- * zur Compile-Zeit ausgeschlossen und braucht weder Laufzeit-Prüfung noch Test.
+ * The constructor is private and [of] requires a first argument, so the empty set is ruled out
+ * at compile time and needs neither a runtime check nor a test.
  */
 @Immutable
 public class SheetDetents private constructor(

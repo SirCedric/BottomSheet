@@ -8,45 +8,45 @@ import dev.sircedric.bottomsheet.internal.NestedScrollRules
 import org.junit.jupiter.api.Test
 
 /**
- * Die Regeltabelle aus Abschnitt 7 der Spec. Vorzeichen wie in Compose: Zug nach oben ist
- * negativ, Zug nach unten positiv.
+ * The rule table from section 7 of the spec. Signs follow Compose: a drag up is negative, a drag
+ * down positive.
  */
 class NestedScrollRulesTest {
 
     @Test
-    fun `aufwaerts gewinnt das Sheet vor dem Content, solange es hoch kann`() {
+    fun `upwards the sheet wins before the content while it can still move up`() {
         assertThat(NestedScrollRules.sheetConsumesPreScroll(-40f, sheetCanMoveUp = true)).isTrue()
     }
 
     @Test
-    fun `aufwaerts auf large konsumiert das Sheet nichts mehr`() {
+    fun `upwards at large the sheet consumes nothing`() {
         assertThat(NestedScrollRules.sheetConsumesPreScroll(-40f, sheetCanMoveUp = false)).isFalse()
     }
 
     @Test
-    fun `abwaerts fasst die Pre-Phase nichts an`() {
+    fun `downwards the pre phase touches nothing`() {
         assertThat(NestedScrollRules.sheetConsumesPreScroll(40f, sheetCanMoveUp = true)).isFalse()
     }
 
     @Test
-    fun `abwaerts nimmt das Sheet erst, was der Content uebrig laesst`() {
+    fun `downwards the sheet only takes what the content leaves`() {
         assertThat(NestedScrollRules.sheetConsumesPostScroll(40f, sheetCanMoveDown = true)).isTrue()
     }
 
     @Test
-    fun `abwaerts an der untersten Kante konsumiert das Sheet nichts`() {
+    fun `downwards at the lowest edge the sheet consumes nothing`() {
         assertThat(NestedScrollRules.sheetConsumesPostScroll(40f, sheetCanMoveDown = false))
             .isFalse()
     }
 
     @Test
-    fun `aufwaerts fasst die Post-Phase nichts an`() {
+    fun `upwards the post phase touches nothing`() {
         assertThat(NestedScrollRules.sheetConsumesPostScroll(-40f, sheetCanMoveDown = true))
             .isFalse()
     }
 
     @Test
-    fun `der konsumierbare Anteil endet am Anchor`() {
+    fun `the consumable share ends at the anchor`() {
         val consumable = NestedScrollRules.consumableBySheet(
             deltaY = -300f,
             offset = 1200f,
@@ -58,7 +58,7 @@ class NestedScrollRulesTest {
     }
 
     @Test
-    fun `am Anchor bleibt nichts konsumierbar — der Rest gehoert dem Rubber-Band`() {
+    fun `at the anchor nothing is consumable — the rest belongs to the rubber band`() {
         val consumable = NestedScrollRules.consumableBySheet(
             deltaY = -120f,
             offset = 1000f,

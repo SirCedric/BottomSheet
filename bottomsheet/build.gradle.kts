@@ -20,8 +20,8 @@ android {
     }
 
     testOptions {
-        // JUnit5 fuer die reinen JVM-Tests. Instrumentiertes JUnit5 braeuchte ein
-        // Drittanbieter-Plugin mit experimenteller Unterstuetzung — dort bleibt es bei JUnit4.
+        // JUnit5 for the plain JVM tests. Instrumented JUnit5 would need a third-party plugin
+        // whose instrumentation support is experimental, so device tests stay on JUnit4.
         unitTests.all { it.useJUnitPlatform() }
     }
 
@@ -39,8 +39,8 @@ kotlin {
     }
 }
 
-// explicitApi() gilt sonst auch fuer die Testquellen; dort exponieren Testmethoden
-// zwangslaeufig interne Typen der Naht.
+// explicitApi() would otherwise apply to the test sources as well, where test methods
+// unavoidably expose the internal types of the seam.
 tasks.withType<KotlinCompile>().configureEach {
     if (name.contains("Test")) {
         compilerOptions.freeCompilerArgs.add("-Xexplicit-api=disable")
@@ -52,7 +52,7 @@ dependencies {
     api(libs.compose.foundation)
     api(libs.compose.ui)
 
-    // Nur fuer den Back-Handler; die Public API exponiert keine Activity-Typen.
+    // Only for the back handler; the public API exposes no activity types.
     implementation(libs.androidx.activity.compose)
 
     implementation(libs.compose.ui.tooling.preview)
@@ -62,15 +62,15 @@ dependencies {
     testImplementation(libs.junit5.params)
     testImplementation(libs.assertk)
     testRuntimeOnly(libs.junit5.engine)
-    // Gradle 9 verlangt den Launcher explizit auf dem Test-Runtime-Classpath.
+    // Gradle 9 requires the launcher explicitly on the test runtime classpath.
     testRuntimeOnly(libs.junit.platform.launcher)
 
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)
-    // ui-test-junit4 zieht Espresso 3.5 mit; das ruft eine API, die es ab Android 17 nicht
-    // mehr gibt (InputManager.getInstance).
+    // ui-test-junit4 pulls in Espresso 3.5, which calls an API that no longer exists from
+    // Android 17 on (InputManager.getInstance).
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.assertk)
     debugImplementation(libs.compose.ui.test.manifest)

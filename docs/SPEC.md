@@ -42,8 +42,8 @@ Der Preis dieser Entscheidung ist Abschnitt 9: Fokus-Trapping und Abschirmung de
 **Ohne Host kracht es laut** — sofort beim ersten Rendern, nicht erst beim Öffnen:
 
 ```
-java.lang.IllegalStateException: Modifier.bottomSheet ohne BottomSheetHost verwendet.
-Umschließe den Root deiner App mit BottomSheetHost { ... }.
+java.lang.IllegalStateException: Modifier.bottomSheet used without a BottomSheetHost.
+Wrap the root of your app in BottomSheetHost { ... }.
 ```
 
 ---

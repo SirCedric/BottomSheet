@@ -155,8 +155,8 @@ class BottomSheetWiringTest {
         }
 
         rule.waitForIdle()
-        // Ueber eine echte Strecke wischen: die Positionsschwelle ist die halbe Distanz zum
-        // naechsten Anchor, ein Wisch ueber einen einzeiligen Textknoten reicht nie.
+        // Swipe over a real distance: the positional threshold is half the way to the next
+        // anchor, so a swipe across a one-line text node never gets there.
         rule.onRoot().performTouchInput {
             swipeDown(startY = height * 0.55f, endY = height.toFloat(), durationMillis = 120)
         }
@@ -290,8 +290,8 @@ class BottomSheetWiringTest {
 
         rule.waitForIdle()
 
-        // Der Sheet-Content bringt genau einen klickbaren Knoten mit. Der Scrim darf keinen
-        // zweiten beisteuern, obwohl sein Tap schließt.
+        // The sheet content brings exactly one clickable node. The scrim must not add a second
+        // one, even though its tap closes the sheet.
         val clickable = rule.onAllNodes(hasAction(SemanticsActions.OnClick)).fetchSemanticsNodes()
         assertThat(clickable.size).isEqualTo(1)
     }
@@ -315,7 +315,7 @@ class BottomSheetWiringTest {
 
         rule.waitForIdle()
 
-        // focusTarget() haelt den Eingabefokus, meldet ihn aber nicht an die Accessibility.
+        // focusTarget() holds the input focus but does not report it to accessibility.
         rule.panel().assert(lacksAction(SemanticsProperties.Focused))
     }
 

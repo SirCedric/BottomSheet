@@ -3,10 +3,10 @@ package dev.sircedric.bottomsheet.internal
 import dev.sircedric.bottomsheet.SheetDetents
 
 /**
- * Die Nutzergesten aus der Entscheidungstabelle in Abschnitt 5 der Spec.
+ * The user gestures from the decision table in section 5 of the spec.
  *
- * Bewusst frei von Compose-Typen: die Tabelle ist der dichteste Verhaltensanspruch der Library
- * und wird als Parameter-Matrix auf der JVM geprüft, nicht Zelle für Zelle per UI-Test.
+ * Deliberately free of Compose types: the table is the densest behavioural claim the library
+ * makes, and it is checked as a parameter matrix on the JVM rather than cell by cell via UI test.
  */
 internal enum class Gesture {
     DragBetweenDetents,
@@ -24,46 +24,46 @@ internal enum class Gesture {
 
 internal enum class GestureOutcome {
 
-    /** Keine Reaktion — das Sheet nimmt die Geste nicht an. */
+    /** No reaction — the sheet does not accept the gesture. */
     Ignored,
 
-    /** Das Sheet rastet nach den Schwellen auf den nächsten Anchor. */
+    /** The sheet settles on the nearest anchor once the thresholds are met. */
     SnapToNearestDetent,
 
-    /** Das Sheet schließt; die Library meldet das über `onDismissRequest`. */
+    /** The sheet closes; the library reports it through `onDismissRequest`. */
     Dismiss,
 
-    /** Gedämpfter Überzug an einer gesperrten Kante, plus `onDismissAttempt`. */
+    /** Damped overdrag at a locked edge, plus `onDismissAttempt`. */
     ResistAndReportDismissAttempt,
 
-    /** Gedämpfter Überzug an einer gesperrten oberen Kante, plus `onExpandAttempt`. */
+    /** Damped overdrag at a locked upper edge, plus `onExpandAttempt`. */
     ResistAndReportExpandAttempt,
 
-    /** Gedämpfter Überzug ohne Meldung — die Kante ist das Ende, aber nichts ist gesperrt. */
+    /** Damped overdrag without a report — the edge is the end, but nothing is locked. */
     ResistSilently,
 
-    /** Die Geste wird verbraucht und als Versuch gemeldet. */
+    /** The gesture is consumed and reported as an attempt. */
     ConsumeAndReportDismissAttempt,
 
-    /** Die Geste wird verbraucht, ohne dass die App davon erfährt. */
+    /** The gesture is consumed without the app hearing about it. */
     ConsumeSilently,
 
-    /** Das Sheet folgt der laufenden Geste (Predictive Back). */
+    /** The sheet follows the ongoing gesture (predictive back). */
     FollowGesture,
 
-    /** Wechsel zwischen den beiden Detents. */
+    /** Switch between the two detents. */
     CycleDetent,
 
-    /** Die laufende Animation ist greifbar, das Sheet folgt dem Finger. */
+    /** The running animation is grabbable; the sheet follows the finger. */
     Grab,
 }
 
 /**
- * Die Entscheidungstabelle Geste × Konfiguration als reine Funktion.
+ * The gesture × configuration decision table as a pure function.
  *
- * [gesturesEnabled] gattert [interactiveDismissEnabled]: ist Ersteres `false`, ist Letzteres
- * bedeutungslos. `gesturesEnabled = false` meldet **keinen** Versuch — wo keine Interaktion
- * vorgesehen ist, gibt es keinen Versuch.
+ * [gesturesEnabled] gates [interactiveDismissEnabled]: if the former is `false`, the latter is
+ * meaningless. `gesturesEnabled = false` reports **no** attempt — where no interaction is
+ * intended, there is no attempt.
  */
 internal fun resolveGesture(
     gesture: Gesture,
@@ -73,8 +73,8 @@ internal fun resolveGesture(
 ): GestureOutcome {
     if (!gesturesEnabled) {
         return when (gesture) {
-            // Back wird in jeder Konfiguration geschluckt, sonst navigiert die App hinter dem
-            // offenen Sheet weg. Gemeldet wird er hier trotzdem nicht.
+            // Back is swallowed in every configuration, otherwise the app navigates away behind
+            // the open sheet. It is still not reported here.
             Gesture.Back, Gesture.PredictiveBack -> GestureOutcome.ConsumeSilently
             Gesture.ScrimTap -> GestureOutcome.ConsumeSilently
             else -> GestureOutcome.Ignored
@@ -90,8 +90,8 @@ internal fun resolveGesture(
             if (mayDismiss) GestureOutcome.Dismiss
             else GestureOutcome.ResistAndReportDismissAttempt
 
-        // Oben federt es immer — gemeldet wird nur, wenn `large` gesperrt ist. Ein Zug über ein
-        // erreichtes `large` verlangt nichts, was ihm verweigert würde.
+        // The upper edge always springs — it only reports when `large` is locked. A drag past an
+        // already reached `large` asks for nothing that is being denied.
         Gesture.DragAboveHighestDetent ->
             if (detents.hasLarge) GestureOutcome.ResistSilently
             else GestureOutcome.ResistAndReportExpandAttempt
@@ -104,7 +104,7 @@ internal fun resolveGesture(
             if (mayDismiss) GestureOutcome.Dismiss
             else GestureOutcome.ConsumeAndReportDismissAttempt
 
-        // Keine Vorschau, wenn die Geste nie committen kann.
+        // No preview when the gesture can never commit.
         Gesture.PredictiveBack ->
             if (mayDismiss) GestureOutcome.FollowGesture
             else GestureOutcome.ConsumeAndReportDismissAttempt
@@ -114,8 +114,8 @@ internal fun resolveGesture(
 
         Gesture.DragDuringEnterAnimation -> GestureOutcome.Grab
 
-        // Beim Ausblenden steht `isPresented` bereits auf false; ein Zurückfangen widerspräche
-        // dem Zustand der App.
+        // While animating out, `isPresented` is already false; catching the sheet again would
+        // contradict the app's state.
         Gesture.DragDuringExitAnimation -> GestureOutcome.Ignored
 
         Gesture.ScrimTapDuringDrag -> GestureOutcome.Ignored
@@ -123,10 +123,10 @@ internal fun resolveGesture(
 }
 
 /**
- * Der Detent, auf den ein Handle-Tap wechselt.
+ * The detent a handle tap switches to.
  *
- * Nur sinnvoll, wenn [resolveGesture] für [Gesture.HandleTap] auch [GestureOutcome.CycleDetent]
- * liefert.
+ * Only meaningful when [resolveGesture] returns [GestureOutcome.CycleDetent] for
+ * [Gesture.HandleTap].
  */
 internal fun cycleTarget(currentDetent: Detent, detents: SheetDetents): Detent = when {
     currentDetent == Detent.Large && detents.hasMedium -> Detent.Medium

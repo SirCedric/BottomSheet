@@ -3,30 +3,30 @@ package dev.sircedric.bottomsheet
 import androidx.compose.runtime.Stable
 
 /**
- * Der Receiver des Sheet-Contents.
+ * The receiver of the sheet content.
  *
- * Er ersetzt einen State-Holder: was die App real braucht — „auf welchem Detent stehe ich" und
- * „geh auf `large`" — braucht sie fast immer *im* Sheet, und dort liefert der Scope es ohne ein
- * einziges `remember`.
+ * It replaces a state holder: what an app actually needs — "which detent am I on" and "go to
+ * `large`" — it almost always needs *inside* the sheet, and there the scope provides it without
+ * a single `remember`.
  *
- * Es gibt bewusst **kein** `dismiss()`: die App hält `isPresented` in der Hand, und ein zweiter
- * Schließweg daran vorbei ließe Zustand und Bild auseinanderlaufen.
+ * There is deliberately **no** `dismiss()`: the app owns `isPresented`, and a second way to
+ * close that bypasses it would let state and picture drift apart.
  */
 @Stable
 public interface BottomSheetScope {
 
     /**
-     * Der Detent, auf dem das Sheet **ruht** — nicht der laufende Offset. Sonst würde der Content
-     * pro Frame rekomponiert.
+     * The detent the sheet **rests** on — not the live offset, which would recompose the content
+     * on every frame.
      */
     public val currentDetent: PresentationDetent
 
     /**
-     * Fährt auf [detent], sofern er in den `presentationDetents` des Sheets vorkommt.
+     * Animates to [detent], provided it is part of the sheet's `presentationDetents`.
      *
-     * Bewusst nicht `suspend`: der Host hat ohnehin den Scope, der die Animation treibt, und die
-     * Call Site braucht kein `rememberCoroutineScope()`. Preis ist, dass sich das Ende der
-     * Animation nicht abwarten lässt.
+     * Deliberately not `suspend`: the host already owns the scope driving the animation, so the
+     * call site needs no `rememberCoroutineScope()`. The price is that the end of the animation
+     * cannot be awaited.
      */
     public fun animateTo(detent: PresentationDetent)
 }

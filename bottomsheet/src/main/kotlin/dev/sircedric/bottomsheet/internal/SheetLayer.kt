@@ -72,10 +72,9 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
 /**
- * Was der Host über das laufende Sheet wissen muss, um App-Content und Blur zu treiben.
+ * What the host needs to know about the running sheet in order to drive app content and blur.
  *
- * Gelesen wird ausschließlich in der Draw-Phase — deshalb kostet die Bewegung keine
- * Recomposition.
+ * Read exclusively in the draw phase — that is why the movement costs no recomposition.
  */
 internal class SheetPresentation {
 
@@ -110,7 +109,7 @@ internal fun SheetLayer(
 
     val topInset = WindowInsets.safeDrawing.getTop(density)
 
-    // Der Detent überlebt Rotation und Prozess-Tod; `isPresented` gehört der App.
+    // The detent survives rotation and process death; `isPresented` belongs to the app.
     var savedDetent by rememberSaveable { mutableStateOf<String?>(null) }
 
     val startDetent = remember {
@@ -174,8 +173,8 @@ internal fun SheetLayer(
 
     val panelFocus = remember { FocusRequester() }
 
-    // Scrim — bewusst ohne Semantics. Modifier.clickable brächte einen ganzflächigen,
-    // unbeschrifteten Knoten in den Accessibility-Baum.
+    // Scrim — deliberately without semantics. Modifier.clickable would put a full-screen,
+    // unlabelled node into the accessibility tree.
     Box(
         Modifier
             .fillMaxSize()
@@ -212,8 +211,8 @@ internal fun SheetLayer(
             .focusRequester(panelFocus)
             .focusProperties { onExit = { cancelFocusChange() } }
             .focusGroup()
-            // focusTarget statt focusable: focusable() meldet die Fokusfähigkeit an die
-            // Accessibility, und ein Container soll das nicht.
+            // focusTarget instead of focusable: focusable() reports focusability to
+            // accessibility, and a container should not do that.
             .focusTarget()
             .semantics {
                 isTraversalGroup = true
@@ -225,7 +224,7 @@ internal fun SheetLayer(
                     val name = if (atLarge) detentNames.large else detentNames.medium
                     name?.let { stateDescription = it }
 
-                    // Immer nur die mögliche Richtung, nie beide.
+                    // Only ever the possible direction, never both.
                     if (atLarge) {
                         collapse {
                             sheetScope.animateTo(PresentationDetent.Medium)
@@ -239,7 +238,7 @@ internal fun SheetLayer(
                     }
                 }
 
-                // Strikt an der Gestentabelle: kein erlaubtes Nutzer-Dismiss ⇒ keine Aktion.
+                // Strictly per the gesture table: no permitted user dismiss means no action.
                 if (entry.gesturesEnabled && entry.interactiveDismissEnabled) {
                     dismiss {
                         entry.onDismissRequest()
@@ -268,8 +267,8 @@ internal fun SheetLayer(
                 includeHidden = !(dismissLocked && entry.isPresented),
             ),
         ) {
-            // Der Griff sitzt als fester Kopf über dem Content-Slot und scrollt nicht mit —
-            // sonst ließe sich ein Sheet mit scrollbarem Content gar nicht mehr ziehen.
+            // The handle sits as a fixed header above the content slot and does not scroll with
+            // it — otherwise a sheet with scrollable content could not be dragged at all.
             val handle = entry.dragHandle.takeIf { entry.gesturesEnabled }
             if (handle != null) {
                 Box(
@@ -337,14 +336,14 @@ internal fun SheetLayer(
         if (entry.gesturesEnabled && entry.dragHandle == null) {
             Log.w(
                 LogTag,
-                "Sheet ohne Drag-Handle: scrollt der Content, gibt es keine verlässliche " +
-                    "Ziehfläche mehr.",
+                "Sheet without a drag handle: if the content scrolls, no reliable drag surface " +
+                    "is left.",
             )
         }
     }
 
-    // Der Fokus wandert beim Öffnen ins Panel und bleibt dort — auch dann, wenn der Content
-    // gar kein fokussierbares Element enthält.
+    // Focus moves into the panel when the sheet opens and stays there — even when the content
+    // holds no focusable element at all.
     LaunchedEffect(entry.isPresented) {
         if (entry.isPresented) {
             while (state.offset.isNaN()) withFrameNanos { }
@@ -352,7 +351,7 @@ internal fun SheetLayer(
         }
     }
 
-    // Der Commit einer Geste wird sofort gemeldet, nicht erst nach der Exit-Animation.
+    // A gesture commit is reported at once, not after the exit animation.
     LaunchedEffect(state) {
         snapshotFlow { state.targetValue }
             .drop(1)
@@ -371,9 +370,9 @@ internal fun SheetLayer(
         if (entry.isPresented) {
             val target = resolveInitialDetent(entry.initialDetent, detents)
             while (anchorsState.value?.contains(target) != true) withFrameNanos { }
-            // Nach einer Wiederherstellung steht das Sheet schon richtig — dann wird gesnappt,
-            // nicht animiert: eine erneute Enter-Animation behauptete eine Präsentation, die
-            // längst passiert ist.
+            // After a restore the sheet already sits correctly — then it snaps rather than
+            // animates: another enter animation would claim a presentation that happened long
+            // ago.
             if (state.settledValue == Detent.Hidden) {
                 state.animateTo(target, motion.animationSpec)
             }
@@ -394,8 +393,8 @@ private fun sheetOffsetPx(state: AnchoredDraggableState<Detent>, rubberBand: She
 }
 
 /**
- * Misst den Content und setzt die Anchors im **selben** Layout-Pass — der dokumentierte Weg für
- * größenabhängige Anchors. Kein SubcomposeLayout, kein Flacker-Frame.
+ * Measures the content and sets the anchors in the **same** layout pass — the documented way for
+ * size-dependent anchors. No SubcomposeLayout, no flickering frame.
  */
 private fun Modifier.sheetLayout(
     state: AnchoredDraggableState<Detent>,
@@ -458,8 +457,8 @@ private class SheetScopeImpl(
 }
 
 /**
- * Die Verzahnung mit scrollbarem Content: aufwärts gewinnt das Sheet vor dem Inhalt, abwärts
- * erst an der Listen-Oberkante.
+ * The interlocking with scrollable content: upwards the sheet wins before the content, downwards
+ * only at the top of the list.
  */
 private class SheetNestedScrollConnection(
     private val state: AnchoredDraggableState<Detent>,
@@ -499,14 +498,14 @@ private class SheetNestedScrollConnection(
         if (!enabled()) return Velocity.Zero
         rubberBand.release()
         if (state.offset.isNaN()) return Velocity.Zero
-        // Der Rückgabewert folgt dem Kontrakt: konsumiert ist `available − remaining`.
+        // The return value follows the contract: consumed is `available - remaining`.
         val remaining = flingToNearestAnchor(available.y)
         return Velocity(0f, available.y - remaining)
     }
 
     /**
-     * Ein FlingBehavior läuft nicht direkt gegen den AnchoredDraggableState — es braucht einen
-     * Adapter von ScrollScope auf AnchoredDragScope.
+     * A FlingBehavior does not run against an AnchoredDraggableState directly — it needs an
+     * adapter from ScrollScope to AnchoredDragScope.
      */
     private suspend fun flingToNearestAnchor(velocity: Float): Float {
         var remaining = velocity
@@ -537,13 +536,13 @@ private class SheetNestedScrollConnection(
     }
 
     /**
-     * Verschiebt das Sheet und gibt den Rest ans Rubber-Band, statt ihn dem Content
-     * zurückzugeben — sonst scrollt der Inhalt an einer gesperrten Kante weiter, obwohl der
-     * Nutzer sichtbar das Sheet zieht.
+     * Moves the sheet and hands the remainder to the rubber band instead of returning it to the
+     * content — otherwise the content keeps scrolling at a locked edge while the user is visibly
+     * dragging the sheet.
      */
     private fun consume(delta: Float): Float {
-        // Eine laufende Animation wird übernommen, nicht ausgesessen: der neue anchoredDrag
-        // reißt die MutatorMutex an sich. Dieser eine Frame fällt aus.
+        // A running animation is taken over rather than waited out: the new anchoredDrag seizes
+        // the MutatorMutex. This one frame is dropped.
         if (state.isAnimationRunning) {
             scope.launch { state.anchoredDrag { } }
             return delta

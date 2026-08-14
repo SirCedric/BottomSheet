@@ -18,13 +18,13 @@ import kotlin.math.sign
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
-/** Faktor der Widerstandsfunktion aus Abschnitt 6 der Spec. */
+/** Factor of the resistance function from section 6 of the spec. */
 private const val ResistanceFactor = 0.35f
 
-/** Obergrenze des Überzugs; die Kurve nähert sich ihr asymptotisch an. */
+/** Upper bound of the overdrag; the curve approaches it asymptotically. */
 private val MaxOverdrag = 96.dp
 
-/** Ab hier gilt ein Zug als Versuch. Gestenschwelle der Library, kein Parameter. */
+/** From here on a drag counts as an attempt. A library gesture threshold, not a parameter. */
 private val AttemptThreshold = 48.dp
 
 private val ReturnSpec = tween<Float>(durationMillis = 180, easing = FastOutSlowInEasing)
@@ -32,14 +32,13 @@ private val ReturnSpec = tween<Float>(durationMillis = 180, easing = FastOutSlow
 internal enum class SheetEdge { None, Top, Bottom }
 
 /**
- * Das Rubber-Band an gesperrten Kanten.
+ * The rubber band at locked edges.
  *
- * Eine gesperrte Kante ist ein **fehlender Anchor** — `anchoredDraggable` reicht genau den
- * Delta- und Velocity-Anteil hierher durch, den die Anchors nicht mehr aufnehmen. Der Überzug
- * wird additiv auf den Sheet-Offset gelegt; `Modifier.overscroll` wird nicht gebraucht, weil
- * wir ihn selbst zeichnen.
+ * A locked edge is a **missing anchor** — `anchoredDraggable` forwards exactly the share of
+ * delta and velocity the anchors can no longer take. The overdrag is added on top of the sheet
+ * offset; `Modifier.overscroll` is not needed because we draw it ourselves.
  *
- * [reportTopEdge] und [reportBottomEdge] entscheiden, ob eine Kante als **Versuch** gilt.
+ * [reportTopEdge] and [reportBottomEdge] decide whether an edge counts as an **attempt**.
  */
 internal class SheetRubberBand(
     private val density: Density,
@@ -51,7 +50,7 @@ internal class SheetRubberBand(
 
     private var raw by mutableFloatStateOf(0f)
 
-    /** Der gedämpfte Überzug in Pixeln, additiv auf den Sheet-Offset. */
+    /** The damped overdrag in pixels, added on top of the sheet offset. */
     var offsetPx: Float by mutableFloatStateOf(0f)
         private set
 
@@ -80,8 +79,8 @@ internal class SheetRubberBand(
     ): Offset {
         val incoming = delta.y
 
-        // Ein bestehender Überzug wird zuerst abgebaut, bevor das Sheet wieder Delta bekommt —
-        // sonst springt es los, während der Finger noch im Überzug zurückkommt.
+        // An existing overdrag is unwound before the sheet gets delta again — otherwise it jumps
+        // off while the finger is still travelling back through the overdrag.
         val unwound = if (raw != 0f && sign(incoming) != sign(raw)) {
             val next = if (raw > 0f) {
                 (raw + incoming).coerceAtLeast(0f)
@@ -117,8 +116,8 @@ internal class SheetRubberBand(
             return
         }
 
-        // Der Überzug bedeutet, dass das Sheet schon am äußersten Anchor liegt — der Fling hat
-        // dort nichts mehr zu holen, also darf die Rückfahrt parallel laufen statt hinterher.
+        // An overdrag means the sheet already sits at the outermost anchor — the fling has
+        // nothing left to do there, so the return may run in parallel rather than after it.
         coroutineScope {
             launch { performFling(velocity) }
             springBack()
@@ -127,14 +126,14 @@ internal class SheetRubberBand(
         attemptFiredInGesture = false
     }
 
-    /** Zug aus der Nested-Scroll-Verzahnung, die den Effekt nicht über `performScroll` erreicht. */
+    /** A pull from the nested-scroll interlocking, which does not reach us via `performScroll`. */
     fun pull(deltaY: Float) {
         raw += deltaY
         recompute()
         maybeReportDuringDrag()
     }
 
-    /** Loslassen nach einem [pull]. */
+    /** Release after a [pull]. */
     suspend fun release() {
         if (raw.absoluteValue < 0.5f) {
             attemptFiredInGesture = false
@@ -146,8 +145,8 @@ internal class SheetRubberBand(
 
     private suspend fun springBack() {
         returning.snapTo(raw)
-        // Ohne Startgeschwindigkeit: ein Wurf gegen die Kante federt nicht weiter aus als ein
-        // langsamer Zug — an einer gesperrten Kante ist das Ergebnis ohnehin festgelegt.
+        // Without an initial velocity: a fling against the edge does not spring further than a
+        // slow drag — at a locked edge the outcome is fixed anyway.
         returning.animateTo(targetValue = 0f, animationSpec = ReturnSpec) {
             raw = value
             recompute()

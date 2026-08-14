@@ -18,10 +18,10 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 
 /**
- * Erscheinungsbild des Sheets.
+ * The appearance of the sheet.
  *
- * Scrim-Farbe und Max-Alpha bleiben getrennt: das Alpha wird animiert, die Farbe nicht — und nur
- * ein eigener Wert kann als Default eine Funktion tragen, die das API-Level liest.
+ * Scrim colour and max alpha stay separate: the alpha is animated, the colour is not — and only
+ * a value of its own can carry a default that reads the API level.
  */
 @Immutable
 public class BottomSheetColors internal constructor(
@@ -31,17 +31,17 @@ public class BottomSheetColors internal constructor(
     public val scrimMaxAlpha: Float,
 )
 
-/** Die Kurve, mit der das Sheet zwischen Detents und nach `Hidden` fährt. */
+/** The curve the sheet travels on between detents and towards `Hidden`. */
 @Immutable
 public class BottomSheetMotion internal constructor(
     public val animationSpec: AnimationSpec<Float>,
 )
 
 /**
- * Die Namen der Detent-Zustände für `stateDescription`.
+ * The names of the detent states, used for `stateDescription`.
  *
- * Die Library bringt **keine** Strings mit; ohne Werte sagt sie keinen Zustand an. Sie stehen am
- * Host statt am Modifier, weil sie app-weit identisch sind.
+ * The library ships **no** strings of its own; without values it announces no state. They live
+ * on the host rather than the modifier because they are identical app-wide.
  */
 @Immutable
 public class BottomSheetDetentNames internal constructor(
@@ -56,15 +56,15 @@ public object BottomSheetDefaults {
 
     public val Shape: Shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
 
-    /** Skalierung des App-Contents bei voller Präsentation. `1f` schaltet den Effekt ab. */
+    /** Scale of the app content at full presentation. `1f` turns the effect off. */
     public const val AppContentMinScale: Float = 0.92f
 
     /**
-     * `0.16f` ab API 31, sonst `0.32f`.
+     * `0.16f` from API 31 on, `0.32f` below.
      *
-     * Ab Android 12 trägt der Blur die Trennung mit und der Scrim tritt zurück; darunter gibt es
-     * keinen Blur — `Modifier.blur` wird dort stillschweigend ignoriert —, also dunkelt der Scrim
-     * allein ab.
+     * From Android 12 the blur carries part of the separation and the scrim steps back. Below
+     * that there is no blur at all — `Modifier.blur` is silently ignored there — so the scrim
+     * has to darken on its own.
      */
     public fun scrimMaxAlpha(): Float =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 0.16f else 0.32f
@@ -91,15 +91,16 @@ public object BottomSheetDefaults {
     ): BottomSheetDetentNames = BottomSheetDetentNames(medium = medium, large = large)
 
     /**
-     * Der Griff am oberen Rand.
+     * The handle at the top edge.
      *
-     * Er sitzt als fester Kopf über dem Content-Slot und scrollt nicht mit — sonst ließe sich ein
-     * Sheet mit scrollbarem Content gar nicht mehr ziehen. Eigene Semantics trägt er nicht.
+     * It sits as a fixed header above the content slot and does not scroll with it — otherwise a
+     * sheet with scrollable content could not be dragged at all. It carries no semantics of its
+     * own.
      */
     @Composable
     public fun DragHandle(modifier: Modifier = Modifier) {
-        // Die Farbe kommt aus den aufgelösten Colors des Hosts. Ein Parameter ginge nicht: der
-        // Default-Slot wird an der Call Site gebaut, wo die Auflösung noch nicht passiert ist.
+        // The colour comes from the host's resolved colours. A parameter would not work: the
+        // default slot is built at the call site, where host and modifier are not resolved yet.
         Box(
             modifier = modifier
                 .padding(vertical = 12.dp)

@@ -4,7 +4,7 @@ import dev.sircedric.bottomsheet.PresentationDetent
 import dev.sircedric.bottomsheet.SheetDetents
 import kotlin.math.roundToInt
 
-/** Der interne Detent-Satz. Anders als [PresentationDetent] kennt er [Hidden]. */
+/** The internal detent set. Unlike [PresentationDetent] it knows [Hidden]. */
 internal enum class Detent { Hidden, Medium, Large }
 
 internal fun PresentationDetent.toDetent(): Detent = when (this) {
@@ -19,17 +19,18 @@ internal fun Detent.toPresentationDetent(): PresentationDetent? = when (this) {
 }
 
 /**
- * Die gemessenen Anchor-Positionen in Pixeln, ohne Compose-Typen.
+ * The measured anchor positions in pixels, free of Compose types.
  *
- * Bewusst **kein** `DraggableAnchors` im Rückgabetyp: nur so bleibt [computeAnchors] auf der
- * JVM testbar, ohne Android-Laufzeit. Die Umwandlung ist ein Einzeiler im Layout-Block.
+ * Deliberately **no** `DraggableAnchors` in the return type: only that keeps [computeAnchors]
+ * testable on the JVM without an Android runtime. The conversion is a one-liner in the layout
+ * block.
  */
 internal class SheetAnchors(
     val panelHeight: Int,
     /**
-     * Wo das Sheet steht, wenn es geschlossen ist — unabhängig davon, ob [hidden] als Anchor
-     * existiert. Der Fortschritt für Scrim und App-Content misst sich hieran, sonst wäre der
-     * Scrim bei gesperrtem Dismiss durchsichtig.
+     * Where the sheet sits when closed — regardless of whether [hidden] exists as an anchor. The
+     * progress driving scrim and app content is measured against this; otherwise the scrim would
+     * be transparent whenever dismiss is locked.
      */
     val hiddenPosition: Float,
     val hidden: Float?,
@@ -37,11 +38,11 @@ internal class SheetAnchors(
     val large: Float?,
 ) {
 
-    /** Die Position des obersten erreichbaren Detents. */
+    /** The position of the topmost reachable detent. */
     val topMostPosition: Float
         get() = large ?: medium ?: hiddenPosition
 
-    /** 0 bei geschlossen, 1 am obersten Anchor. */
+    /** 0 when closed, 1 at the topmost anchor. */
     fun progressAt(offset: Float): Float {
         if (offset.isNaN()) return 0f
         val span = hiddenPosition - topMostPosition
@@ -57,7 +58,7 @@ internal class SheetAnchors(
 
     fun contains(detent: Detent): Boolean = positionOf(detent) != null
 
-    /** Der oberste erreichbare Detent — kleinste Position gewinnt. */
+    /** The topmost reachable detent — the smallest position wins. */
     val topMost: Detent
         get() = when {
             large != null -> Detent.Large
@@ -65,7 +66,7 @@ internal class SheetAnchors(
             else -> Detent.Hidden
         }
 
-    /** Der unterste erreichbare Detent. */
+    /** The lowest reachable detent. */
     val bottomMost: Detent
         get() = when {
             hidden != null -> Detent.Hidden
@@ -97,15 +98,15 @@ internal class SheetAnchors(
             "hidden=$hidden, medium=$medium, large=$large)"
 }
 
-/** Anteil von `large`, den `medium` einnimmt, wenn der Content mindestens so hoch ist. */
+/** Fraction of `large` that `medium` takes up once the content is at least that tall. */
 private const val MediumFractionWhenContentOverflows = 0.5f
 
 /**
- * Berechnet Panel-Höhe und Anchor-Positionen aus einer Messung.
+ * Computes panel height and anchor positions from a measurement.
  *
- * [includeHidden] steuert die untere gesperrte Kante: fehlt `Hidden`, kann keine Geste das Sheet
- * schließen, und der Zug darunter läuft ins Rubber-Band. Der Anchor kommt zurück, sobald die App
- * programmatisch schließt — sonst hätte die Exit-Animation kein Ziel.
+ * [includeHidden] governs the locked lower edge: without `Hidden` no gesture can close the sheet
+ * and a drag below it runs into the rubber band. The anchor returns as soon as the app closes
+ * programmatically — otherwise the exit animation would have no target.
  */
 internal fun computeAnchors(
     containerHeight: Int,
@@ -132,10 +133,10 @@ internal fun computeAnchors(
 }
 
 /**
- * Der Detent, auf dem eine neue Präsentation startet.
+ * The detent a new presentation starts on.
  *
- * Steht der gewünschte Wert nicht in [detents], greift der kleinste enthaltene — bei uns also
- * `Medium` vor `Large`.
+ * If the requested value is not part of [detents], the smallest contained one applies — here
+ * `Medium` before `Large`.
  */
 internal fun resolveInitialDetent(
     requested: PresentationDetent,
@@ -148,10 +149,10 @@ internal fun resolveInitialDetent(
 }
 
 /**
- * Der Detent, auf den nach einer Wiederherstellung gesnappt wird.
+ * The detent to snap to after a restore.
  *
- * Kommt der gerettete Wert in den Detents des wiederhergestellten Sheets nicht vor, gilt wieder
- * [resolveInitialDetent].
+ * If the saved value is not among the detents of the restored sheet, [resolveInitialDetent]
+ * applies again.
  */
 internal fun resolveRestoredDetent(
     restored: Detent?,

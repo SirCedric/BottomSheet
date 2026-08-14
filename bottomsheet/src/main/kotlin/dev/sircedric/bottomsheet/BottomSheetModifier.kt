@@ -17,38 +17,37 @@ import dev.sircedric.bottomsheet.internal.SheetEntry
 import dev.sircedric.bottomsheet.internal.SheetRegistry
 
 /**
- * Hängt ein Bottom Sheet an dieses Composable.
+ * Attaches a bottom sheet to this composable.
  *
- * Der Owner bestimmt, *was* im Sheet steht — gezeichnet wird es im [BottomSheetHost], der über
- * der gesamten App liegt. Ohne Host kracht es beim ersten Rendern.
+ * The owner decides *what* the sheet shows — it is drawn by the [BottomSheetHost], which sits
+ * above the entire app. Without a host this fails loudly on the first render.
  *
- * @param isPresented ob das Sheet sichtbar sein soll. Der Zustand gehört der App.
- * @param onDismissRequest feuert **nur** bei Dismissals, die die Library ausgelöst hat —
- *   interaktives Dismiss und der Fall, dass der Owner die Composition verlässt. Setzt die App
- *   selbst `isPresented = false`, feuert der Callback nicht.
- * @param presentationDetents die erlaubten Ruhepositionen.
- * @param initialDetent gilt bei **jedem** Übergang von `false` nach `true`. Fehlt der Wert in
- *   [presentationDetents], greift der kleinste enthaltene Detent.
- * @param gesturesEnabled ob das Sheet überhaupt auf Nutzergesten reagiert. Ist der Wert `false`,
- *   wird ein angeforderter [dragHandle] **verworfen** — ein Griff, an dem nichts passiert, wäre
- *   eine Falschaussage.
- * @param interactiveDismissEnabled ob Nutzergesten schließen dürfen. Wird von [gesturesEnabled]
- *   gattert. Ist der Wert `false`, bietet die Library TalkBack **keine** Schließen-Aktion an;
- *   die App muss dann selbst einen Schließen-Weg in den Sheet-Content legen.
- * @param onDismissAttempt feuert, wenn eine Nutzergeste geschlossen hätte, aber gesperrt war —
- *   beim Überschreiten der Überzugs-Schwelle **während** der Geste, einmal pro Geste. Gedacht
- *   für die Rückfrage vor Datenverlust.
- * @param onExpandAttempt das Gegenstück an der oberen Kante, wenn `Large` nicht erlaubt ist.
- * @param paneTitle wird beim Öffnen angesagt. Ohne Wert sagt die Library nichts an — sie bringt
- *   keine eigenen Strings mit.
- * @param dragHandle der Griff am oberen Rand; `null` heißt kein Griff. Fehlt er und scrollt der
- *   Content, gibt es keine verlässliche Ziehfläche mehr, und die Library warnt.
- * @param colors überschreibt die Farben des Hosts; `null` heißt „nimm die des Hosts".
- * @param motion überschreibt die Kurve des Hosts.
- * @param shape überschreibt die Form des Hosts.
- * @param appContentMinScale überschreibt die Skalierung des App-Contents.
- * @param content der Inhalt des Sheets. Er wird erst beim Öffnen komponiert und bleibt bis zum
- *   Ende der Exit-Animation am Leben.
+ * @param isPresented whether the sheet should be visible. The state belongs to the app.
+ * @param onDismissRequest fires **only** for dismissals the library caused — an interactive
+ *   dismiss, or the owner leaving the composition. If the app sets `isPresented = false` itself,
+ *   the callback does not fire.
+ * @param presentationDetents the resting positions the sheet is allowed to use.
+ * @param initialDetent applies on **every** transition from `false` to `true`. If the value is
+ *   not part of [presentationDetents], the smallest contained detent is used.
+ * @param gesturesEnabled whether the sheet reacts to user gestures at all. When `false`, a
+ *   requested [dragHandle] is **discarded** — a handle that does nothing would be a lie.
+ * @param interactiveDismissEnabled whether user gestures may close the sheet. Gated by
+ *   [gesturesEnabled]. When `false`, the library offers TalkBack **no** dismiss action; the app
+ *   must then place a way to close inside the sheet content itself.
+ * @param onDismissAttempt fires when a user gesture would have closed the sheet but was locked —
+ *   on crossing the overdrag threshold **during** the gesture, once per gesture. Meant for
+ *   confirming before data loss.
+ * @param onExpandAttempt the counterpart at the upper edge, when `Large` is not allowed.
+ * @param paneTitle announced when the sheet opens. Without a value the library announces
+ *   nothing — it ships no strings of its own.
+ * @param dragHandle the handle at the top edge; `null` means no handle. If it is missing and the
+ *   content scrolls, no reliable drag surface is left, and the library warns.
+ * @param colors overrides the host's colours; `null` means "use the host's".
+ * @param motion overrides the host's curve.
+ * @param shape overrides the host's shape.
+ * @param appContentMinScale overrides the scaling of the app content.
+ * @param content the content of the sheet. It is composed only when the sheet opens and stays
+ *   alive until the exit animation has finished.
  */
 public fun Modifier.bottomSheet(
     isPresented: Boolean,
@@ -191,9 +190,9 @@ private class BottomSheetNode :
     private var hostMissing = false
     private val entry = SheetEntry()
 
-    // Bewusst ein Lesen ohne Beobachtung: der Host sitzt am Root der App und wechselt nie.
-    // Deshalb ist die Registry ein staticCompositionLocalOf und der Modifier bleibt eine
-    // gewoehnliche, nicht-composable Extension.
+    // Deliberately a read without observation: the host sits at the root of the app and never
+    // changes. That is why the registry is a staticCompositionLocalOf and the modifier stays an
+    // ordinary, non-composable extension.
     @Suppress("SuspiciousCompositionLocalModifierRead")
     override fun onAttach() {
         val found = currentValueOf(LocalSheetRegistry)
@@ -208,17 +207,17 @@ private class BottomSheetNode :
     }
 
     /**
-     * Der fehlende Host wird in der Layout-Phase gemeldet, nicht in [onAttach]: eine Exception
-     * von dort lässt den Node halb attached zurück, und Compose überschreibt die Nachricht beim
-     * Aufräumen mit einer eigenen. So kommt sie beim ersten Rendern und steht ganz oben.
+     * The missing host is reported from the layout phase, not from [onAttach]: throwing there
+     * leaves the node half attached, and Compose overwrites the message with one of its own
+     * during teardown. This way it arrives on the first render and stands at the top.
      */
     override fun MeasureScope.measure(
         measurable: Measurable,
         constraints: Constraints,
     ): MeasureResult {
         check(!hostMissing) {
-            "Modifier.bottomSheet ohne BottomSheetHost verwendet.\n" +
-                "Umschließe den Root deiner App mit BottomSheetHost { ... }."
+            "Modifier.bottomSheet used without a BottomSheetHost.\n" +
+                "Wrap the root of your app in BottomSheetHost { ... }."
         }
         val placeable = measurable.measure(constraints)
         return layout(placeable.width, placeable.height) { placeable.place(0, 0) }
@@ -229,9 +228,9 @@ private class BottomSheetNode :
         registry?.unregister(entry)
         registry = null
 
-        // Verlässt der Owner die Composition — etwa beim Wegscrollen aus einer LazyColumn —,
-        // verschwindet das Sheet ohne Exit-Animation. Ohne diese Meldung bliebe `isPresented`
-        // an der Call Site auf `true` stehen und liefe still gegen das Bild.
+        // When the owner leaves the composition — scrolled out of a LazyColumn, for instance —
+        // the sheet disappears without an exit animation. Without this report `isPresented` would
+        // stay `true` at the call site and drift silently against what is on screen.
         if (wasPresented) onDismissRequest()
     }
 

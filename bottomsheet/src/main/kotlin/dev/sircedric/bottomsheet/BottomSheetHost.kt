@@ -23,18 +23,18 @@ import dev.sircedric.bottomsheet.internal.SheetLayer
 import dev.sircedric.bottomsheet.internal.SheetPresentation
 import dev.sircedric.bottomsheet.internal.SheetRegistry
 
-/** Radius des Hintergrund-Blurs bei voller Präsentation. Ab API 31; darunter passiert nichts. */
+/** Blur radius behind the sheet at full presentation. From API 31; below that nothing happens. */
 private val MaxBlurRadius = 24.dp
 
 /**
- * Der einmalige Wrapper um den App-Content, der alle Sheets zeichnet.
+ * The one-time wrapper around the app content that draws every sheet.
  *
- * Er gehört ganz nach oben — in `setContent` um den Root der App. Er rendert **in-composition**,
- * nicht als eigenes Window: nur so sieht der Sheet-Content dieselben `WindowInsets` wie die App
- * und nur so liegt der Scrim auch über der Statusbar.
+ * It belongs at the very top — inside `setContent`, around the root of the app. It renders
+ * **in-composition** rather than in a window of its own: only that way does the sheet content
+ * see the same `WindowInsets` as the app, and only that way does the scrim cover the status bar.
  *
- * Die hier gesetzten Werte sind die App-weiten Defaults; jeder Modifier darf sie einzeln
- * überschreiben. [detentNames] ist die Ausnahme — die Zustandsnamen sind app-weit identisch.
+ * The values set here are the app-wide defaults; any modifier may override them individually.
+ * [detentNames] is the exception — the state names are identical app-wide.
  */
 @Composable
 public fun BottomSheetHost(
@@ -51,8 +51,8 @@ public fun BottomSheetHost(
 
     val presented: SheetEntry? = registry.presented
 
-    // Der Eintrag bleibt über das Ende von `isPresented` hinaus am Leben, bis die Exit-Animation
-    // durch ist — sonst verschwände das Sheet schlagartig statt auszublenden.
+    // The entry outlives `isPresented` until the exit animation has finished — otherwise the
+    // sheet would vanish at once instead of animating out.
     var rendered by remember { mutableStateOf<SheetEntry?>(null) }
     if (presented != null && presented !== rendered) rendered = presented
 
@@ -76,9 +76,9 @@ public fun BottomSheetHost(
                     }
                 }
                 .then(
-                    // Abschirmung des Accessibility-Baums: hideFromAccessibility() schneidet den
-                    // Teilbaum nicht ab, clearAndSetSemantics schon. Gekoppelt an `isPresented`,
-                    // damit der App-Content beim Dismiss-Commit sofort wieder bedienbar ist.
+                    // Shielding the accessibility tree: hideFromAccessibility() does not cut the
+                    // subtree, clearAndSetSemantics does. Tied to `isPresented` so the app content
+                    // becomes operable again the moment a dismiss commits.
                     if (active?.isPresented == true) Modifier.clearAndSetSemantics { } else Modifier,
                 ),
         ) {

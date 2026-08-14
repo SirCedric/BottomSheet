@@ -1,32 +1,32 @@
 package dev.sircedric.bottomsheet.internal
 
 /**
- * Die Verzahnung aus Abschnitt 7 der Spec, als reine Funktionen.
+ * The interlocking from section 7 of the spec, as pure functions.
  *
- * Vorzeichen wie in Compose: ein Zug nach **oben** liefert negatives `y`, ein Zug nach **unten**
- * positives. Die Regeln sind rein deltabasiert — kein Sonderfall fragt `firstVisibleItemIndex`
- * ab, damit `reverseLayout` und verschachtelte Scroller automatisch stimmen.
+ * Signs follow Compose: a drag **up** yields a negative `y`, a drag **down** a positive one. The
+ * rules are purely delta-based — no case asks for `firstVisibleItemIndex`, so `reverseLayout`
+ * and nested scrollers are correct automatically.
  */
 internal object NestedScrollRules {
 
     /**
-     * Aufwärts gewinnt das Sheet **vor** dem Content: aus `medium` expandiert es zuerst auf
-     * `large`, danach scrollt der Inhalt. Positive Deltas werden in dieser Phase nie angefasst.
+     * Upwards the sheet wins **before** the content: from `medium` it expands to `large` first,
+     * and only then does the content scroll. Positive deltas are never touched in this phase.
      */
     fun sheetConsumesPreScroll(deltaY: Float, sheetCanMoveUp: Boolean): Boolean =
         deltaY < 0f && sheetCanMoveUp
 
     /**
-     * Abwärts scrollt zuerst der Content; was an der Listen-Oberkante übrig bleibt, nimmt das
-     * Sheet.
+     * Downwards the content scrolls first; whatever is left at the top of the list goes to the
+     * sheet.
      */
     fun sheetConsumesPostScroll(deltaY: Float, sheetCanMoveDown: Boolean): Boolean =
         deltaY > 0f && sheetCanMoveDown
 
     /**
-     * Der Anteil eines Deltas, den das Sheet aufnehmen kann, bevor es an einen Anchor stößt.
-     * Der Rest geht ans Rubber-Band, nicht zurück an den Content — sonst scrollt der Inhalt an
-     * einer gesperrten Kante weiter, obwohl der Nutzer das Sheet zieht.
+     * The share of a delta the sheet can take before it hits an anchor. The remainder goes to the
+     * rubber band rather than back to the content — otherwise the content would keep scrolling at
+     * a locked edge while the user is visibly dragging the sheet.
      */
     fun consumableBySheet(deltaY: Float, offset: Float, minPosition: Float, maxPosition: Float): Float {
         val target = (offset + deltaY).coerceIn(minPosition, maxPosition)

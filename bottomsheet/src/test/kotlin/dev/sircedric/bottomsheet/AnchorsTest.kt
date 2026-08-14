@@ -17,7 +17,7 @@ private const val PanelHeight = Container - TopInset
 class AnchorsTest {
 
     @Test
-    fun `medium liegt auf der Content-Hoehe, solange der Content unter large bleibt`() {
+    fun `medium sits at the content height while the content stays below large`() {
         val anchors = computeAnchors(
             containerHeight = Container,
             topInset = TopInset,
@@ -33,7 +33,7 @@ class AnchorsTest {
     }
 
     @Test
-    fun `medium faellt bei zu hohem Content nicht weg, sondern liegt bei der Haelfte von large`() {
+    fun `medium does not drop out for tall content but sits at half of large`() {
         val anchors = computeAnchors(
             containerHeight = Container,
             topInset = TopInset,
@@ -42,12 +42,12 @@ class AnchorsTest {
             includeHidden = true,
         )
 
-        // Gemessen in #9: container 2400, topInset 121 ⇒ medium liegt bei 1260 px.
+        // Measured in #9: container 2400, topInset 121, so medium lands at 1260 px.
         assertThat(anchors.medium).isEqualTo(1260f)
     }
 
     @Test
-    fun `Content von null Hoehe legt medium auf den unteren Rand`() {
+    fun `content of zero height puts medium at the bottom edge`() {
         val anchors = computeAnchors(
             containerHeight = Container,
             topInset = TopInset,
@@ -60,7 +60,7 @@ class AnchorsTest {
     }
 
     @Test
-    fun `ohne topInset reicht large bis an den oberen Rand`() {
+    fun `without a topInset large reaches the top edge`() {
         val anchors = computeAnchors(
             containerHeight = Container,
             topInset = 0,
@@ -74,7 +74,7 @@ class AnchorsTest {
     }
 
     @Test
-    fun `ein sehr grosser topInset laesst die Panel-Hoehe nicht negativ werden`() {
+    fun `a very large topInset never makes the panel height negative`() {
         val anchors = computeAnchors(
             containerHeight = 400,
             topInset = 900,
@@ -87,7 +87,7 @@ class AnchorsTest {
     }
 
     @Test
-    fun `nur medium erlaubt laesst den large-Anchor weg`() {
+    fun `allowing only medium leaves out the large anchor`() {
         val anchors = computeAnchors(
             containerHeight = Container,
             topInset = TopInset,
@@ -102,7 +102,7 @@ class AnchorsTest {
     }
 
     @Test
-    fun `nur large erlaubt laesst den medium-Anchor weg`() {
+    fun `allowing only large leaves out the medium anchor`() {
         val anchors = computeAnchors(
             containerHeight = Container,
             topInset = TopInset,
@@ -116,7 +116,7 @@ class AnchorsTest {
     }
 
     @Test
-    fun `gesperrtes Dismiss nimmt den Hidden-Anchor heraus, die Hidden-Position bleibt`() {
+    fun `a locked dismiss removes the hidden anchor but keeps the hidden position`() {
         val anchors = computeAnchors(
             containerHeight = Container,
             topInset = TopInset,
@@ -131,7 +131,7 @@ class AnchorsTest {
     }
 
     @Test
-    fun `der Fortschritt misst sich an der Hidden-Position, auch wenn der Anchor fehlt`() {
+    fun `progress is measured against the hidden position even without the anchor`() {
         val anchors = computeAnchors(
             containerHeight = Container,
             topInset = TopInset,
@@ -145,7 +145,7 @@ class AnchorsTest {
     }
 
     @Test
-    fun `initialDetent faellt auf den kleinsten enthaltenen zurueck`() {
+    fun `initialDetent falls back to the smallest contained detent`() {
         assertThat(resolveInitialDetent(PresentationDetent.Medium, SheetDetents.Large))
             .isEqualTo(Detent.Large)
         assertThat(resolveInitialDetent(PresentationDetent.Large, SheetDetents.Medium))
@@ -155,7 +155,7 @@ class AnchorsTest {
     }
 
     @Test
-    fun `ein geretteter Detent gilt nur, wenn er noch erlaubt ist`() {
+    fun `a restored detent only applies while it is still allowed`() {
         assertThat(
             resolveRestoredDetent(Detent.Large, PresentationDetent.Medium, SheetDetents.MediumAndLarge),
         ).isEqualTo(Detent.Large)

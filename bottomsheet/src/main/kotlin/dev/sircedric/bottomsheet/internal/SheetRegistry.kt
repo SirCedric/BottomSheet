@@ -18,11 +18,11 @@ import dev.sircedric.bottomsheet.SheetDetents
 internal const val LogTag: String = "BottomSheet"
 
 /**
- * Ein registriertes Sheet.
+ * A registered sheet.
  *
- * Die Felder sind beobachtbar, weil der Modifier sie bei jeder Änderung an der Call Site
- * überschreibt, während der Host sie liest. Der Eintrag selbst überlebt Recompositions —
- * getauscht wird nur sein Inhalt.
+ * The fields are observable because the modifier overwrites them on every change at the call
+ * site while the host reads them. The entry itself survives recompositions — only its contents
+ * are swapped.
  */
 internal class SheetEntry {
 
@@ -42,7 +42,7 @@ internal class SheetEntry {
     var appContentMinScale: Float? by mutableStateOf(null)
     var content: @Composable BottomSheetScope.() -> Unit by mutableStateOf({})
 
-    /** Woher das Sheet kommt — nur für die Warnung bei zwei offenen Sheets. */
+    /** Where the sheet comes from — only used for the warning about two open sheets. */
     var ownerDescription: String by mutableStateOf("")
 }
 
@@ -60,10 +60,10 @@ internal class SheetRegistry {
     }
 
     /**
-     * Das Sheet, das gezeichnet wird: der zuletzt registrierte offene Eintrag.
+     * The sheet that gets drawn: the most recently registered open entry.
      *
-     * Die Zusage „genau ein Sheet gleichzeitig" gilt dem Bild, nicht der Registry — zwei offene
-     * Sheets sind ein Fehler der App, aber kein Absturz.
+     * The promise of "exactly one sheet at a time" applies to the picture, not the registry —
+     * two open sheets are a bug in the app, but not a crash.
      */
     val presented: SheetEntry?
         get() = entries.lastOrNull { it.isPresented }
@@ -73,9 +73,9 @@ internal class SheetRegistry {
         if (open.size > 1) {
             Log.w(
                 LogTag,
-                "Mehr als ein Sheet ist gleichzeitig presented; gezeichnet wird das zuletzt " +
-                    "registrierte. Betroffen: " +
-                    open.joinToString { it.ownerDescription.ifEmpty { "unbekannte Stelle" } },
+                "More than one sheet is presented at the same time; the most recently " +
+                    "registered one is drawn. Affected: " +
+                    open.joinToString { it.ownerDescription.ifEmpty { "unknown call site" } },
             )
         }
     }

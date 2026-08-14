@@ -13,15 +13,15 @@ import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 
 /**
- * Die Entscheidungstabelle aus Abschnitt 5 der Spec, Zelle für Zelle.
+ * The decision table from section 5 of the spec, cell by cell.
  *
- * Spalte A = beide Schalter an, B = Dismiss gesperrt, C = Gesten aus.
+ * Column A = both switches on, B = dismiss locked, C = gestures off.
  */
 internal class GesturePolicyTest {
 
-    @ParameterizedTest(name = "{0} in Spalte A ergibt {1}")
+    @ParameterizedTest(name = "{0} in column A yields {1}")
     @MethodSource("columnA")
-    fun `Spalte A`(gesture: Gesture, expected: GestureOutcome) {
+    fun `column A`(gesture: Gesture, expected: GestureOutcome) {
         assertThat(
             resolveGesture(
                 gesture = gesture,
@@ -32,9 +32,9 @@ internal class GesturePolicyTest {
         ).isEqualTo(expected)
     }
 
-    @ParameterizedTest(name = "{0} in Spalte B ergibt {1}")
+    @ParameterizedTest(name = "{0} in column B yields {1}")
     @MethodSource("columnB")
-    fun `Spalte B`(gesture: Gesture, expected: GestureOutcome) {
+    fun `column B`(gesture: Gesture, expected: GestureOutcome) {
         assertThat(
             resolveGesture(
                 gesture = gesture,
@@ -45,9 +45,9 @@ internal class GesturePolicyTest {
         ).isEqualTo(expected)
     }
 
-    @ParameterizedTest(name = "{0} in Spalte C ergibt {1}")
+    @ParameterizedTest(name = "{0} in column C yields {1}")
     @MethodSource("columnC")
-    fun `Spalte C`(gesture: Gesture, expected: GestureOutcome) {
+    fun `column C`(gesture: Gesture, expected: GestureOutcome) {
         assertThat(
             resolveGesture(
                 gesture = gesture,
@@ -59,7 +59,7 @@ internal class GesturePolicyTest {
     }
 
     @Test
-    fun `die obere Kante meldet nur, wenn large gar nicht erlaubt ist`() {
+    fun `the upper edge only reports when large is not allowed at all`() {
         assertThat(
             resolveGesture(
                 gesture = Gesture.DragAboveHighestDetent,
@@ -80,7 +80,7 @@ internal class GesturePolicyTest {
     }
 
     @Test
-    fun `ein einziger Detent laesst den Handle-Tap ins Leere laufen`() {
+    fun `a single detent makes the handle tap a no-op`() {
         assertThat(
             resolveGesture(
                 gesture = Gesture.HandleTap,
@@ -92,7 +92,7 @@ internal class GesturePolicyTest {
     }
 
     @Test
-    fun `der Handle-Tap wechselt zwischen den beiden Detents`() {
+    fun `the handle tap switches between the two detents`() {
         assertThat(cycleTarget(Detent.Medium, SheetDetents.MediumAndLarge)).isEqualTo(Detent.Large)
         assertThat(cycleTarget(Detent.Large, SheetDetents.MediumAndLarge)).isEqualTo(Detent.Medium)
     }
@@ -142,8 +142,8 @@ internal class GesturePolicyTest {
             Arguments.of(Gesture.HandleTap, GestureOutcome.Ignored),
             Arguments.of(Gesture.DragDuringEnterAnimation, GestureOutcome.Ignored),
             Arguments.of(Gesture.DragDuringExitAnimation, GestureOutcome.Ignored),
-            // Back wird geschluckt, damit die App nicht hinter dem Sheet wegnavigiert —
-            // gemeldet wird er nicht, weil es ohne Interaktion keinen Versuch gibt.
+            // Back is swallowed so the app does not navigate away behind the sheet. It is not
+            // reported, because without interaction there is no attempt.
             Arguments.of(Gesture.Back, GestureOutcome.ConsumeSilently),
             Arguments.of(Gesture.PredictiveBack, GestureOutcome.ConsumeSilently),
             Arguments.of(Gesture.ScrimTap, GestureOutcome.ConsumeSilently),
