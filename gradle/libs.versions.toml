@@ -8,6 +8,8 @@ junit5 = "6.0.0"
 assertk = "0.28.1"
 androidxTest = "1.7.0"
 espresso = "3.7.0"
+dokka = "2.2.0"
+mavenPublish = "0.37.0"
 
 compileSdk = "37"
 minSdk = "29"
@@ -39,3 +41,5 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
+maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }

@@ -1,10 +1,20 @@
+import com.vanniktech.maven.publish.DeploymentValidation
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
+    // Only the HTML flavour: with dokka-javadoc applied as well, the publishing plugin would pick
+    // the javadoc format, which truncates every @param text after its first sentence.
+    alias(libs.plugins.dokka)
+    alias(libs.plugins.maven.publish)
 }
+
+group = "de.cedrickummer"
+// The release workflow injects the real version. The SNAPSHOT fallback keeps a local publish
+// recognisable and lets it run without a signing key.
+version = providers.gradleProperty("releaseVersion").getOrElse("0.0.0-LOCAL-SNAPSHOT")
 
 android {
     namespace = "de.cedrickummer.bottomsheet"
@@ -44,6 +54,44 @@ kotlin {
 tasks.withType<KotlinCompile>().configureEach {
     if (name.contains("Test")) {
         compilerOptions.freeCompilerArgs.add("-Xexplicit-api=disable")
+    }
+}
+
+dokka {
+    moduleName = "BottomSheet"
+}
+
+mavenPublishing {
+    publishToMavenCentral(automaticRelease = true, validateDeployment = DeploymentValidation.PUBLISHED)
+    signAllPublications()
+
+    coordinates(artifactId = "bottomsheet")
+
+    pom {
+        name = "BottomSheet"
+        description = "A bottom sheet for Jetpack Compose that attaches to any composable through a modifier " +
+            "and behaves like SwiftUI's .sheet with presentationDetents."
+        inceptionYear = "2026"
+        url = "https://github.com/SirCedric/BottomSheet"
+        licenses {
+            license {
+                name = "MIT License"
+                url = "https://opensource.org/licenses/MIT"
+                distribution = "repo"
+            }
+        }
+        developers {
+            developer {
+                id = "SirCedric"
+                name = "Cedric Kummer"
+                url = "https://github.com/SirCedric"
+            }
+        }
+        scm {
+            url = "https://github.com/SirCedric/BottomSheet"
+            connection = "scm:git:https://github.com/SirCedric/BottomSheet.git"
+            developerConnection = "scm:git:ssh://git@github.com/SirCedric/BottomSheet.git"
+        }
     }
 }
 
