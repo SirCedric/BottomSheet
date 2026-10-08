@@ -42,7 +42,10 @@ Drei interne Nähte tragen das Verhalten und sind **frei von Compose-Typen**, da
 ```bash
 ./gradlew build                                            # kompiliert, lintet, JVM-Tests
 ANDROID_SERIAL=<serial> ./gradlew :bottomsheet:connectedDebugAndroidTest
+git config core.hooksPath .githooks                        # einmal pro Clone
 ```
+
+Die Geräte-Tests laufen nicht in der CI, sondern im Pre-push-Hook `.githooks/pre-push`. Sie laufen nur, wenn der Branch seit dem Merge-Base mit `origin/main` `bottomsheet/`, `gradle/`, `*.gradle.kts` oder `gradle.properties` ändert. Tags und Löschungen bleiben unberührt. Ohne Gerät oder ohne `adb` warnt der Hook und lässt den Push durch. Bei mehreren Geräten ohne `ANDROID_SERIAL` blockiert er, ebenso bei roten Tests. Getestet wird der Working Tree, nicht der gepushte Commit. Bei uncommitteten Änderungen in diesen Pfaden warnt der Hook deshalb.
 
 Vier Stolpersteine, alle schon einmal Zeit gekostet:
 
