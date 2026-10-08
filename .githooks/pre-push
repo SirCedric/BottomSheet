@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Runs the device tests before a push. A safety net, not a gate: nothing on the server enforces it,
+# so a missing device only warns, while a wrong setup or a red test blocks.
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+warn() { printf '\033[1;33mpre-push: %s\033[0m\n' "$*" >&2; }
+fail() { printf '\033[1;31mpre-push: %s\033[0m\n' "$*" >&2; exit 1; }
+
+relevant='^(bottomsheet/|gradle/|gradle\.properties$|.*\.gradle\.kts$)'
+
+needs_tests=false
+while read -r _ local_sha remote_ref _; do
+  [[ "$remote_ref" == refs/heads/* ]] || continue
+  [[ "$local_sha" =~ ^0+$ ]] && continue
+  base=$(git merge-base "$local_sha" origin/main 2>/dev/null || true)
+  if [ -z "$base" ] || git diff --name-only "$base" "$local_sha" | grep -Eq "$relevant"; then
+    needs_tests=true
+  fi
+done
+
+if ! $needs_tests; then
+  echo "pre-push: no library or build changes, device tests skipped" >&2
+  exit 0
+fi
+
+adb=$(command -v adb || true)
+if [ -z "$adb" ]; then
+  sdk=${ANDROID_HOME:-$(sed -n 's/^sdk\.dir=//p' local.properties 2>/dev/null)}
+  [ -x "$sdk/platform-tools/adb" ] && adb="$sdk/platform-tools/adb"
+fi
+if [ -z "$adb" ]; then
+  warn "adb not found, device tests SKIPPED"
+  exit 0
+fi
+
+devices=$("$adb" devices | awk 'NR > 1 && $2 == "device" { print $1 }')
+if [ -n "${ANDROID_SERIAL:-}" ]; then
+  if ! grep -qxF "$ANDROID_SERIAL" <<<"$devices"; then
+    warn "ANDROID_SERIAL=$ANDROID_SERIAL is not attached, device tests SKIPPED"
+    exit 0
+  fi
+else
+  case $(grep -c . <<<"$devices" || true) in
+    0)
+      warn "no device attached, device tests SKIPPED"
+      exit 0
+      ;;
+    1)
+      export ANDROID_SERIAL=$devices
+      ;;
+    *)
+      # Often one device over USB and TLS at once; Gradle would install on both in parallel
+      # and the instrumentation dies with DELETE_FAILED_INTERNAL_ERROR.
+      fail "several devices attached, pick one with ANDROID_SERIAL:
+$devices"
+      ;;
+  esac
+fi
+
+if [ -n "$(git status --porcelain -- bottomsheet gradle gradle.properties '*.gradle.kts')" ]; then
+  warn "working tree differs from the pushed commits, results may not reflect the push"
+fi
+
+echo "pre-push: running device tests on $ANDROID_SERIAL" >&2
+./gradlew :bottomsheet:connectedDebugAndroidTest
