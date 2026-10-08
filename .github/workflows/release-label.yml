@@ -1,0 +1,26 @@
+name: Release label
+
+# Separate from CI on purpose: a label change must not rebuild, and a job skipped by `if`
+# would report "skipped", which a required status check counts as passing.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions: {}
+
+jobs:
+  release-label:
+    name: release-label
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - env:
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: |
+          found=$(jq -r '.[] | select(IN("release:major", "release:minor", "release:patch", "release:none"))' <<<"$LABELS")
+          count=$(grep -c . <<<"$found" || true)
+          if [ "$count" -ne 1 ]; then
+            echo "::error::Expected exactly one of release:major, release:minor, release:patch, release:none; found ${count}: ${found//$'\n'/, }"
+            exit 1
+          fi
+          echo "Release label: $found"
