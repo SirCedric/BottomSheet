@@ -105,6 +105,36 @@ class BottomSheetWiringTest {
     }
 
     @Test
+    fun contentGrowingAtRestMovesTheSheetInsteadOfDismissingIt() {
+        var presented by mutableStateOf(true)
+        var contentHeight by mutableStateOf(40.dp)
+
+        rule.setContent {
+            BottomSheetHost {
+                Box(
+                    Modifier.bottomSheet(
+                        isPresented = presented,
+                        onDismissRequest = { presented = false },
+                    ) {
+                        Box(Modifier.fillMaxWidth().height(contentHeight).testTag(SheetTag))
+                    },
+                )
+            }
+        }
+        rule.waitForIdle()
+
+        // Grows by more than the visible part: the hidden anchor is now closer to the old
+        // offset than the moved medium anchor.
+        contentHeight = 200.dp
+        rule.waitForIdle()
+
+        assertThat(presented).isTrue()
+        val rootBottom = rule.onRoot().fetchSemanticsNode().boundsInRoot.bottom
+        val sheetBottom = rule.onNodeWithTag(SheetTag).fetchSemanticsNode().boundsInRoot.bottom
+        assertThat(sheetBottom <= rootBottom).isTrue()
+    }
+
+    @Test
     fun scrimTapClosesOrElseReportsTheAttempt() {
         var presented by mutableStateOf(true)
         var attempts = 0
