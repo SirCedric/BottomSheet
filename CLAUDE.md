@@ -54,6 +54,17 @@ Vier Stolpersteine, alle schon einmal Zeit gekostet:
 - **Espresso ist auf 3.7 gepinnt.** `ui-test-junit4` zieht 3.5 mit, das auf Android 17 in `InputManager.getInstance` kracht.
 - **Gradle 9 braucht `junit-platform-launcher`** explizit auf dem Test-Runtime-Classpath.
 
+## Release
+
+Jeder Merge auf `main` startet `.github/workflows/release.yml`. Das Pflicht-Label am PR entscheidet:
+
+| Label | Ergebnis |
+| --- | --- |
+| `release:none` | kein Release, der Lauf endet grün |
+| `release:patch` / `minor` / `major` | letzter `vX.Y.Z`-Tag plus Bump, strikt SemVer auch unter 1.0.0 |
+
+Der Job `plan` schreibt die Zielversion ins Summary. Danach wartet `publish` im Environment `SONATYPE` auf die Freigabe. **Vor dem Approve die Zahl im Summary prüfen**, denn Central ist append-only. Tag und GitHub Release setzt der Workflow erst nach `PUBLISHED`. Auflösbar ist die Koordinate 10 bis 30 Minuten später, in der Suche auf central.sonatype.com taucht sie erst noch später auf.
+
 ## Offen
 
 Der **API-Dump als `check`-Gate** fehlt. Weder die in den Kotlin-Gradle-Plugin eingebaute ABI-Validierung noch der `binary-compatibility-validator` registrieren in diesem Modul Tasks: Kotlin kommt über AGP, es gibt kein konventionelles Kotlin-Target zum Andocken. Damit steht „nichts ist `@Experimental`" ohne seine Absicherung — jede Signaturänderung braucht bis auf Weiteres ein aufmerksames Review.

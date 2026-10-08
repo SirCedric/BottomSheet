@@ -36,15 +36,12 @@ The background blur applies from API 31 on; below that the scrim darkens more to
 
 ## Installation
 
-The library is **not published yet** — Maven Central publishing is a separate step. Until then, include it as a project dependency:
+The library is on Maven Central. Add the dependency; `mavenCentral()` is already among the repositories of every new Android project:
 
 ```kotlin
-// settings.gradle.kts
-include(":bottomsheet")
-
 // app/build.gradle.kts
 dependencies {
-    implementation(project(":bottomsheet"))
+    implementation("de.cedrickummer:bottomsheet:0.0.1")
 }
 ```
 
