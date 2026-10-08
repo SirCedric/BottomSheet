@@ -2,6 +2,8 @@ package de.cedrickummer.bottomsheet.internal
 
 import android.util.Log
 import androidx.activity.compose.PredictiveBackHandler
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.animate
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.gestures.AnchoredDraggableDefaults
@@ -29,6 +31,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -71,6 +74,7 @@ import androidx.compose.ui.graphics.Shape
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
@@ -85,10 +89,33 @@ internal class SheetPresentation {
 
     var anchors: SheetAnchors? by mutableStateOf(null)
 
+    var anchorShift: AnchorShift? by mutableStateOf(null)
+
     fun progress(): Float {
         val currentState = state ?: return 0f
         val currentAnchors = anchors ?: return 0f
-        return currentAnchors.progressAt(currentState.offset)
+        return currentAnchors.progressAt(currentState.offset + (anchorShift?.offsetPx ?: 0f))
+    }
+}
+
+/**
+ * Turns the snap that `updateAnchors` performs on a resting sheet into a visible animation. The
+ * jump is booked as an opposite offset in the same layout pass, so no frame shows the new
+ * position early, and then animated away.
+ */
+internal class AnchorShift {
+
+    var offsetPx: Float by mutableFloatStateOf(0f)
+        private set
+
+    private var animation: Job? = null
+
+    fun absorb(jump: Float, scope: CoroutineScope, animationSpec: AnimationSpec<Float>) {
+        offsetPx -= jump
+        animation?.cancel()
+        animation = scope.launch {
+            animate(offsetPx, 0f, animationSpec = animationSpec) { value, _ -> offsetPx = value }
+        }
     }
 }
 
@@ -147,9 +174,11 @@ internal fun SheetLayer(
     }
 
     val anchorsState = remember { mutableStateOf<SheetAnchors?>(null) }
+    val anchorShift = remember { AnchorShift() }
 
     presentation.state = state
     presentation.anchors = anchorsState.value
+    presentation.anchorShift = anchorShift
 
     val interactive = state.settledValue != Detent.Hidden || state.targetValue != Detent.Hidden
     val settledAndStill = state.settledValue != Detent.Hidden && !state.isAnimationRunning
@@ -182,7 +211,8 @@ internal fun SheetLayer(
         Modifier
             .fillMaxSize()
             .graphicsLayer {
-                val current = anchorsState.value?.progressAt(state.offset) ?: 0f
+                val visibleOffset = state.offset + anchorShift.offsetPx
+                val current = anchorsState.value?.progressAt(visibleOffset) ?: 0f
                 alpha = current * colors.scrimMaxAlpha
             }
             .background(colors.scrim)
@@ -208,7 +238,7 @@ internal fun SheetLayer(
     Box(
         Modifier
             .fillMaxWidth()
-            .offset { IntOffset(0, sheetOffsetPx(state, rubberBand)) }
+            .offset { IntOffset(0, sheetOffsetPx(state, rubberBand, anchorShift)) }
             .clip(shape)
             .background(colors.sheet)
             .focusRequester(panelFocus)
@@ -268,6 +298,7 @@ internal fun SheetLayer(
                 topInset = topInset,
                 detents = detents,
                 includeHidden = !(dismissLocked && entry.isPresented),
+                onAnchorJump = { jump -> anchorShift.absorb(jump, scope, motion.animationSpec) },
             ),
         ) {
             // The handle sits as a fixed header above the content slot and does not scroll with
@@ -389,10 +420,14 @@ internal fun SheetLayer(
 
 private fun detentOf(name: String): Detent? = Detent.entries.firstOrNull { it.name == name }
 
-private fun sheetOffsetPx(state: AnchoredDraggableState<Detent>, rubberBand: SheetRubberBand): Int {
+private fun sheetOffsetPx(
+    state: AnchoredDraggableState<Detent>,
+    rubberBand: SheetRubberBand,
+    anchorShift: AnchorShift,
+): Int {
     val base = state.offset
     if (base.isNaN()) return Int.MAX_VALUE / 2
-    return (base + rubberBand.offsetPx).roundToInt()
+    return (base + rubberBand.offsetPx + anchorShift.offsetPx).roundToInt()
 }
 
 /**
@@ -405,6 +440,7 @@ private fun Modifier.sheetLayout(
     topInset: Int,
     detents: SheetDetents,
     includeHidden: Boolean,
+    onAnchorJump: (Float) -> Unit,
 ): Modifier = layout { measurable, constraints ->
     val containerHeight = constraints.maxHeight
     val panelHeight = (containerHeight - topInset).coerceAtLeast(0)
@@ -423,13 +459,20 @@ private fun Modifier.sheetLayout(
 
     if (anchorsState.value != anchors) anchorsState.value = anchors
 
+    // The target is kept explicitly: by default updateAnchors picks the anchor closest to the old
+    // offset, and when the content grows by more than its visible part, that is Hidden.
+    val offsetBefore = state.offset
     state.updateAnchors(
         DraggableAnchors {
             anchors.hidden?.let { Detent.Hidden at it }
             anchors.medium?.let { Detent.Medium at it }
             anchors.large?.let { Detent.Large at it }
         },
+        newTarget = state.targetValue,
     )
+    // Only a resting sheet snaps; during a drag or an animation the anchor follows silently.
+    val jump = state.offset - offsetBefore
+    if (!jump.isNaN() && jump != 0f) onAnchorJump(jump)
 
     layout(placeable.width, anchors.panelHeight) { placeable.place(0, 0) }
 }
