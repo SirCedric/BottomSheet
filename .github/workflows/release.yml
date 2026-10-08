@@ -1,0 +1,142 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  plan:
+    name: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      base: ${{ steps.version.outputs.base }}
+      version: ${{ steps.version.outputs.version }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      SHA: ${{ github.sha }}
+    steps:
+      - id: bump
+        run: |
+          pr=$(gh api "repos/$REPO/commits/$SHA/pulls" \
+            --jq '[.[] | select(.merged_at != null and .base.ref == "main")] | first // empty')
+          if [ -z "$pr" ]; then
+            echo "::error::No merged pull request found for $SHA. The ruleset only admits pull request merges, so this push needs a look before anything is released."
+            exit 1
+          fi
+          number=$(jq -r '.number' <<<"$pr")
+          bump=$(jq -r '[.labels[].name | select(IN("release:major", "release:minor", "release:patch", "release:none"))] | if length == 1 then .[0] | ltrimstr("release:") else empty end' <<<"$pr")
+          if [ -z "$bump" ]; then
+            echo "::error::Pull request #$number does not carry exactly one release:* label."
+            exit 1
+          fi
+          echo "number=$number" >>"$GITHUB_OUTPUT"
+          echo "bump=$bump" >>"$GITHUB_OUTPUT"
+
+      - id: version
+        env:
+          NUMBER: ${{ steps.bump.outputs.number }}
+          BUMP: ${{ steps.bump.outputs.bump }}
+        run: |
+          if [ "$BUMP" = none ]; then
+            echo "No release: pull request #$NUMBER is labelled \`release:none\`." >>"$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          tags=$(git ls-remote --tags --refs "https://github.com/$REPO.git" 'v*')
+          # A rerun after a successful release must not compute and publish the next version.
+          existing=$(awk -v sha="$SHA" '$1 == sha { sub("refs/tags/", "", $2); print $2 }' <<<"$tags")
+          if [ -n "$existing" ]; then
+            echo "No release: $SHA is already tagged \`$existing\`." >>"$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          base=$(sed -n 's|.*refs/tags/\(v[0-9]*\.[0-9]*\.[0-9]*\)$|\1|p' <<<"$tags" | sort -V | tail -n 1)
+          IFS=. read -r major minor patch <<<"${base:-v0.0.0}"
+          major=${major#v}
+          case "$BUMP" in
+            major) version="$((major + 1)).0.0" ;;
+            minor) version="$major.$((minor + 1)).0" ;;
+            patch) version="$major.$minor.$((patch + 1))" ;;
+          esac
+
+          echo "base=${base:-none}" >>"$GITHUB_OUTPUT"
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+          {
+            echo "## Release \`$version\`"
+            echo
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| Pull request | #$NUMBER |"
+            echo "| Bump | \`$BUMP\` |"
+            echo "| Previous tag | \`${base:-none}\` |"
+            echo "| Coordinate | \`de.cedrickummer:bottomsheet:$version\` |"
+            echo
+            echo "Approving the \`SONATYPE\` environment publishes exactly this version. Maven Central never deletes or overwrites a release."
+          } >>"$GITHUB_STEP_SUMMARY"
+
+  publish:
+    name: publish
+    needs: plan
+    if: needs.plan.outputs.version != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: SONATYPE
+    permissions:
+      contents: write
+    # Serialises releases. The version check below still guards the case where another release
+    # landed between this run's plan and its approval.
+    concurrency:
+      group: release
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      SHA: ${{ github.sha }}
+      BASE: ${{ needs.plan.outputs.base }}
+      VERSION: ${{ needs.plan.outputs.version }}
+    steps:
+      - name: Check that the approved version is still next
+        run: |
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Refusing to publish malformed version '$VERSION'."
+            exit 1
+          fi
+          tags=$(git ls-remote --tags --refs "https://github.com/$REPO.git" 'v*')
+          base=$(sed -n 's|.*refs/tags/\(v[0-9]*\.[0-9]*\.[0-9]*\)$|\1|p' <<<"$tags" | sort -V | tail -n 1)
+          if [ "${base:-none}" != "$BASE" ]; then
+            echo "::error::The latest tag moved from $BASE to $base since this run computed $VERSION. Re-run all jobs to compute and approve a fresh version."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: true
+
+      - run: ./gradlew check
+
+      - env:
+          ORG_GRADLE_PROJECT_releaseVersion: ${{ needs.plan.outputs.version }}
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.CENTRAL_TOKEN_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_IN_MEMORY_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_IN_MEMORY_KEY_PASSWORD }}
+        run: ./gradlew :bottomsheet:publishAndReleaseToMavenCentral
+
+      # Only after Central reports PUBLISHED: a missing tag is one command to fix, a version burnt
+      # on Central is gone for good.
+      - run: gh release create "v$VERSION" --repo "$REPO" --target "$SHA" --title "v$VERSION" --generate-notes
+
+      - run: |
+          echo "Published \`de.cedrickummer:bottomsheet:$VERSION\` and tagged \`v$VERSION\`. Central may take up to 30 minutes before the coordinate resolves." >>"$GITHUB_STEP_SUMMARY"
