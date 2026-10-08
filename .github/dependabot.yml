@@ -1,0 +1,11 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # The release-label check is required on every pull request.
+    labels:
+      - release:none
+    commit-message:
+      prefix: ci
