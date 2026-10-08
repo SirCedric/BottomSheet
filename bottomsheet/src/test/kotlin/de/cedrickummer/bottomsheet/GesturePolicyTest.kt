@@ -1,12 +1,12 @@
-package dev.sircedric.bottomsheet
+package de.cedrickummer.bottomsheet
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import dev.sircedric.bottomsheet.internal.Detent
-import dev.sircedric.bottomsheet.internal.Gesture
-import dev.sircedric.bottomsheet.internal.GestureOutcome
-import dev.sircedric.bottomsheet.internal.cycleTarget
-import dev.sircedric.bottomsheet.internal.resolveGesture
+import de.cedrickummer.bottomsheet.internal.Detent
+import de.cedrickummer.bottomsheet.internal.Gesture
+import de.cedrickummer.bottomsheet.internal.GestureOutcome
+import de.cedrickummer.bottomsheet.internal.cycleTarget
+import de.cedrickummer.bottomsheet.internal.resolveGesture
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments

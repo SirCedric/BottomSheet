@@ -1,10 +1,10 @@
-package dev.sircedric.bottomsheet
+package de.cedrickummer.bottomsheet
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isTrue
-import dev.sircedric.bottomsheet.internal.NestedScrollRules
+import de.cedrickummer.bottomsheet.internal.NestedScrollRules
 import org.junit.jupiter.api.Test
 
 /**

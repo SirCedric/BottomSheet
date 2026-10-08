@@ -1,4 +1,4 @@
-package dev.sircedric.bottomsheet.playground
+package de.cedrickummer.bottomsheet.playground
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity

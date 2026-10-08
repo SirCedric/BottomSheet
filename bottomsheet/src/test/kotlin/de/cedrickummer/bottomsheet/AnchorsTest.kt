@@ -1,13 +1,13 @@
-package dev.sircedric.bottomsheet
+package de.cedrickummer.bottomsheet
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNull
-import dev.sircedric.bottomsheet.internal.Detent
-import dev.sircedric.bottomsheet.internal.computeAnchors
-import dev.sircedric.bottomsheet.internal.resolveInitialDetent
-import dev.sircedric.bottomsheet.internal.resolveRestoredDetent
+import de.cedrickummer.bottomsheet.internal.Detent
+import de.cedrickummer.bottomsheet.internal.computeAnchors
+import de.cedrickummer.bottomsheet.internal.resolveInitialDetent
+import de.cedrickummer.bottomsheet.internal.resolveRestoredDetent
 import org.junit.jupiter.api.Test
 
 private const val Container = 2400

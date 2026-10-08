@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "dev.sircedric.bottomsheet.playground"
+    namespace = "de.cedrickummer.bottomsheet.playground"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "dev.sircedric.bottomsheet.playground"
+        applicationId = "de.cedrickummer.bottomsheet.playground"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1

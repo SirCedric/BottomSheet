@@ -1,4 +1,4 @@
-package dev.sircedric.bottomsheet
+package de.cedrickummer.bottomsheet
 
 import android.os.Build
 import androidx.compose.foundation.layout.Box
@@ -17,11 +17,11 @@ import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
-import dev.sircedric.bottomsheet.internal.LocalSheetRegistry
-import dev.sircedric.bottomsheet.internal.SheetEntry
-import dev.sircedric.bottomsheet.internal.SheetLayer
-import dev.sircedric.bottomsheet.internal.SheetPresentation
-import dev.sircedric.bottomsheet.internal.SheetRegistry
+import de.cedrickummer.bottomsheet.internal.LocalSheetRegistry
+import de.cedrickummer.bottomsheet.internal.SheetEntry
+import de.cedrickummer.bottomsheet.internal.SheetLayer
+import de.cedrickummer.bottomsheet.internal.SheetPresentation
+import de.cedrickummer.bottomsheet.internal.SheetRegistry
 
 /** Blur radius behind the sheet at full presentation. From API 31; below that nothing happens. */
 private val MaxBlurRadius = 24.dp

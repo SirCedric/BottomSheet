@@ -1,4 +1,4 @@
-package dev.sircedric.bottomsheet.internal
+package de.cedrickummer.bottomsheet.internal
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing

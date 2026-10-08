@@ -1,7 +1,7 @@
-package dev.sircedric.bottomsheet.internal
+package de.cedrickummer.bottomsheet.internal
 
-import dev.sircedric.bottomsheet.PresentationDetent
-import dev.sircedric.bottomsheet.SheetDetents
+import de.cedrickummer.bottomsheet.PresentationDetent
+import de.cedrickummer.bottomsheet.SheetDetents
 import kotlin.math.roundToInt
 
 /** The internal detent set. Unlike [PresentationDetent] it knows [Hidden]. */

@@ -1,4 +1,4 @@
-package dev.sircedric.bottomsheet.internal
+package de.cedrickummer.bottomsheet.internal
 
 import android.util.Log
 import androidx.activity.compose.PredictiveBackHandler
@@ -60,13 +60,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
-import dev.sircedric.bottomsheet.BottomSheetColors
-import dev.sircedric.bottomsheet.BottomSheetDetentNames
-import dev.sircedric.bottomsheet.BottomSheetMotion
-import dev.sircedric.bottomsheet.BottomSheetScope
-import dev.sircedric.bottomsheet.LocalDragHandleColor
-import dev.sircedric.bottomsheet.PresentationDetent
-import dev.sircedric.bottomsheet.SheetDetents
+import de.cedrickummer.bottomsheet.BottomSheetColors
+import de.cedrickummer.bottomsheet.BottomSheetDetentNames
+import de.cedrickummer.bottomsheet.BottomSheetMotion
+import de.cedrickummer.bottomsheet.BottomSheetScope
+import de.cedrickummer.bottomsheet.LocalDragHandleColor
+import de.cedrickummer.bottomsheet.PresentationDetent
+import de.cedrickummer.bottomsheet.SheetDetents
 import androidx.compose.ui.graphics.Shape
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.roundToInt

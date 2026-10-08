@@ -1,4 +1,4 @@
-package dev.sircedric.bottomsheet.internal
+package de.cedrickummer.bottomsheet.internal
 
 import android.util.Log
 import androidx.compose.runtime.Composable
@@ -9,11 +9,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Shape
-import dev.sircedric.bottomsheet.BottomSheetColors
-import dev.sircedric.bottomsheet.BottomSheetMotion
-import dev.sircedric.bottomsheet.BottomSheetScope
-import dev.sircedric.bottomsheet.PresentationDetent
-import dev.sircedric.bottomsheet.SheetDetents
+import de.cedrickummer.bottomsheet.BottomSheetColors
+import de.cedrickummer.bottomsheet.BottomSheetMotion
+import de.cedrickummer.bottomsheet.BottomSheetScope
+import de.cedrickummer.bottomsheet.PresentationDetent
+import de.cedrickummer.bottomsheet.SheetDetents
 
 internal const val LogTag: String = "BottomSheet"
 
