@@ -1,4 +1,4 @@
-package dev.sircedric.bottomsheet
+package de.cedrickummer.bottomsheet
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -12,9 +12,9 @@ import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.platform.InspectorInfo
-import dev.sircedric.bottomsheet.internal.LocalSheetRegistry
-import dev.sircedric.bottomsheet.internal.SheetEntry
-import dev.sircedric.bottomsheet.internal.SheetRegistry
+import de.cedrickummer.bottomsheet.internal.LocalSheetRegistry
+import de.cedrickummer.bottomsheet.internal.SheetEntry
+import de.cedrickummer.bottomsheet.internal.SheetRegistry
 
 /**
  * Attaches a bottom sheet to this composable.

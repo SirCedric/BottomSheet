@@ -1,4 +1,4 @@
-package dev.sircedric.bottomsheet.internal
+package de.cedrickummer.bottomsheet.internal
 
 /**
  * The interlocking from section 7 of the spec, as pure functions.

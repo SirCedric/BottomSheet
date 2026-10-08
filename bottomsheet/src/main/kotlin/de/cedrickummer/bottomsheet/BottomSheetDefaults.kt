@@ -1,4 +1,4 @@
-package dev.sircedric.bottomsheet
+package de.cedrickummer.bottomsheet
 
 import android.os.Build
 import androidx.compose.animation.core.AnimationSpec

@@ -1,6 +1,6 @@
-package dev.sircedric.bottomsheet.internal
+package de.cedrickummer.bottomsheet.internal
 
-import dev.sircedric.bottomsheet.SheetDetents
+import de.cedrickummer.bottomsheet.SheetDetents
 
 /**
  * The user gestures from the decision table in section 5 of the spec.

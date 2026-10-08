@@ -53,7 +53,7 @@ Wrap the root of your app in BottomSheetHost { ... }.
 Quelle: [#10](https://github.com/SirCedric/BottomSheet/issues/10) samt drei Nachträgen. `explicitApi()` ist strict, **nichts** trägt `@Experimental`.
 
 ```kotlin
-package dev.sircedric.bottomsheet
+package de.cedrickummer.bottomsheet
 
 @Immutable
 public sealed interface PresentationDetent {
@@ -553,7 +553,7 @@ Quelle: [#2](https://github.com/SirCedric/BottomSheet/issues/2).
 | minSdk | 29 |
 | JVM-Target + Toolchain | 17 |
 
-Namespace und Root-Package `dev.sircedric.bottomsheet`, Gradle-Group `dev.sircedric`. Alle Versionen zentral in `gradle/libs.versions.toml`, auch die SDK-Level.
+Namespace und Root-Package `de.cedrickummer.bottomsheet`, Gradle-Group `de.cedrickummer`. Alle Versionen zentral in `gradle/libs.versions.toml`, auch die SDK-Level.
 
 **AGP 9 bringt Kotlin eingebaut mit** — `org.jetbrains.kotlin.android` darf **nicht** appliziert werden, sonst bricht die Konfiguration ab. Angewendet werden nur `com.android.library`/`com.android.application` plus `org.jetbrains.kotlin.plugin.compose`.
 

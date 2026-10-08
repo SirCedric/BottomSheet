@@ -1,4 +1,4 @@
-package dev.sircedric.bottomsheet
+package de.cedrickummer.bottomsheet
 
 import androidx.compose.runtime.Immutable
 

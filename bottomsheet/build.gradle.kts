@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.sircedric.bottomsheet"
+    namespace = "de.cedrickummer.bottomsheet"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
