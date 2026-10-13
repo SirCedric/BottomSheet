@@ -131,6 +131,14 @@ public object BottomSheetDefaults {
 
     @Composable
     public fun DragHandle(modifier: Modifier = Modifier)
+
+    @Composable
+    public fun Header(
+        modifier: Modifier = Modifier,
+        navigationAction: (@Composable () -> Unit)? = null,
+        title: (@Composable () -> Unit)? = null,
+        actions: (@Composable RowScope.() -> Unit)? = null,
+    )
 }
 
 @Composable
@@ -155,6 +163,7 @@ public fun Modifier.bottomSheet(
     onExpandAttempt: (() -> Unit)? = null,
     paneTitle: String? = null,
     dragHandle: (@Composable () -> Unit)? = { BottomSheetDefaults.DragHandle() },
+    header: (@Composable BottomSheetScope.() -> Unit)? = null,
     colors: BottomSheetColors? = null,
     motion: BottomSheetMotion? = null,
     shape: Shape? = null,
@@ -186,6 +195,28 @@ public fun Modifier.bottomSheet(
 **`@Immutable class` + Factory, keine `data class`.** `copy()` und `componentN()` würden Teil der Binär-API und bräche jedes später hinzugefügte Member.
 
 **Scharfe Kante, die bleibt:** `sheet = Color.White` ist im Dark Mode falsch. Die Library ist M3-frei und kennt kein Theme. Eine Dark-Mode-App setzt `BottomSheetHost(colors = …)` einmal — dafür ist der App-weite Default da.
+
+### Header
+
+Quelle: [Header-Slot: Weg zum Spec-Nachtrag](https://github.com/SirCedric/BottomSheet/issues/46) mit [#47](https://github.com/SirCedric/BottomSheet/issues/47) und [#48](https://github.com/SirCedric/BottomSheet/issues/48), angefordert in [#45](https://github.com/SirCedric/BottomSheet/issues/45).
+
+**Ein freier Slot plus ein Baustein, keine strukturierten Parameter.** `header` folgt dem Muster von `dragHandle`: Die Library garantiert Lage, Scroll- und Zieh-Verhalten, `BottomSheetDefaults.Header` liefert den Look. Wer etwas anderes braucht, legt einen eigenen Composable hinein.
+
+**Der Slot ist kein Ausweg aus einer Unmöglichkeit.** Ein fester Kopf ließe sich im Content mit `weight(1f, fill = false)` bauen, weil der Content-Slot eine begrenzte Maximalhöhe hat. Der Slot rechtfertigt sich durch Auffindbarkeit, eine garantierte Reihenfolge im Accessibility-Baum und einen einheitlichen Look.
+
+**Alle drei Slots des Bausteins sind `@Composable` und `null`-defaultet.** Der Titel ist **kein `String`**: Ohne M3 hat die Library keine Typografie, ein `TextStyle`-Default wäre so falsch wie `Color.White` im Dark Mode. Die App legt ihren eigenen `Text` hinein, die Library positioniert ihn nur. Kein Default-Text, kein Icon, kein M3.
+
+**Kein App-weiter Default am Host.** Ein Header ist pro Sheet inhaltlich verschieden, wie der Content. Er bekommt keine eigene Farbe, der Hintergrund ist `colors.sheet`.
+
+**Keine Konstante für die Maße.** `BottomSheetDefaults.Header` hat keine öffentliche Mindesthöhe und keine Paddings als Parameter. Wer andere Maße will, baut seinen eigenen Header. Nachrüsten per defaultetem Parameter bleibt möglich.
+
+**Doku-Pflichten der Umsetzung:**
+
+- KDoc `header` am Modifier: Lage zwischen Handle und Content, scrollt nicht mit, zählt zur `Medium`-Höhe, zieht das Sheet, bleibt bei `gesturesEnabled = false` sichtbar.
+- KDoc `BottomSheetDefaults.Header`: die drei Slots und ihre Platzierung; Aktionen brauchen mindestens 48 × 48.dp Trefferfläche (`sizeIn(minWidth = 48.dp, minHeight = 48.dp)`), weil der Baustein das ohne M3 nicht erzwingen kann; der Titel sollte `maxLines = 1` mit `TextOverflow.Ellipsis` setzen, die Library kürzt nicht.
+- KDoc `paneTitle`: Wer einen Header-Titel setzt, setzt hier meist denselben Text. Die Library leitet ihn nicht ab.
+- KDoc `dragHandle` und `BottomSheetDefaults.DragHandle`: Die bisherige Formulierung „fixed header above the content slot“ kollidiert mit dem Begriff **Header** und wird umformuliert. Die Warnung bei fehlendem Handle gilt nur noch, wenn auch kein Header da ist (Abschnitt 3).
+- README: unter „Insets and the keyboard“ den seitlichen Konsum ergänzen (Abschnitt 8); neuer Abschnitt zum Header nach „Scrollable content“, mit dem Formular-Beispiel aus #45; der Satz zum Drag-Handle als „fixed header“ unter „Scrollable content“ wird angepasst; `header` in die Parametertabelle unter „Appearance“.
 
 ---
 
@@ -221,6 +252,27 @@ val mediumHeight = if (contentHeight >= largeHeight) {
 **Ändert sich die Content-Höhe zur Laufzeit**, wird auf den neuen Anchor **animiert**, nicht gesprungen (`updateAnchors` würde `trySnapTo` aufrufen). Läuft gerade ein Drag oder eine Animation, zieht der Anchor still nach.
 
 **Der Content wird erst beim Öffnen komponiert** — und bleibt bis zum **Ende der Exit-Animation** am Leben (siehe Abschnitt 5). Vorab-Komposition bringt keinen Positionsvorteil und legt einen Scrim mit `alpha = 0` über die App, der jeden Tap schluckt.
+
+**Header** ([#48](https://github.com/SirCedric/BottomSheet/issues/48)): Reihenfolge im Panel ist Drag Handle, Header, Content. Der Header scrollt nicht mit und zählt zur Höhe für `Medium` — `computeAnchors` bekommt wie bisher die gemessene Höhe der ganzen Spalte. Der Content-Slot erhält als Maximalhöhe, was von `largeHeight` nach Handle und Header übrig bleibt. Seitliche Insets behandelt der Header wie der Content (Abschnitt 8).
+
+**Ohne gezeichneten Handle** (`dragHandle == null` oder `gesturesEnabled = false`) setzt die Library **12.dp** Abstand über den Header — den Abstand, den der Handle unter sich mitbringt. Der Baustein weiß davon nichts. Ohne Header bleibt das Layout wie in 0.0.1.
+
+**Die Warnung bei fehlendem Handle** fällt weg, sobald ein Header da ist: Er ist eine Zieh-Fläche, die nicht scrollt.
+
+**Niedrige Höhe braucht keine Regel.** Im Querformat nehmen Handle und Header rund 80.dp der Höhe; Landscape ist ohnehin nicht in v1 (Abschnitt 13).
+
+`BottomSheetDefaults.Header` misst so ([#47](https://github.com/SirCedric/BottomSheet/issues/47), [#48](https://github.com/SirCedric/BottomSheet/issues/48)):
+
+| | Wert |
+|---|---|
+| Mindesthöhe | `52.dp`, wächst mit dem höchsten Slot |
+| Seitenrand außen | `8.dp` |
+| Innenabstand um den Titel | `8.dp` horizontal |
+| Vertikal | alle drei Slots mittig |
+| Titel-Messung | Seiten-Slots zuerst und unbeschränkt, der Titel bekommt den Rest |
+| Titel-Platzierung | auf die **volle** Breite zentriert, bei Kollision zur freien Seite geschoben |
+
+Das ist die Mess- und Platzierungsregel von `CenterAlignedTopAppBar`, nachgebaut ohne M3. Verworfen ist die symmetrische Variante, die beide Seiten auf die breitere reserviert: Sie hält den Titel exakt mittig, kürzt ihn aber früher. Die Platzierung ist eine reine Rechnung und wird wie `computeAnchors` als Compose-freie Naht herausgezogen (Abschnitt 11). RTL spiegelt sich über `placeRelative` von selbst.
 
 **Z-Ordnung**: App-Content, darüber der Scrim über die volle Fläche, darüber das Panel. Der Corner-Radius wird per `clip` **vor** dem `background` gesetzt, damit er auch den Content beschneidet.
 
@@ -274,6 +326,9 @@ Spalten: **A** = beide `true` (Default) · **B** = `gesturesEnabled` ✓, `inter
 | Predictive Back (API 34+) | Sheet folgt der Geste Richtung `Hidden`; Loslassen committet, Abbruch federt zurück | **keine** Vorschau, geschluckt, `onDismissAttempt` | **keine** Vorschau, geschluckt, kein Callback |
 | Handle-Tap | `medium` ↔ `large` | `medium` ↔ `large` | keine Reaktion |
 | Drag-Handle sichtbar (wenn angefordert) | ja | ja | **nein** |
+| Drag am Header | wie Drag am Panel | wie Drag am Panel | keine Reaktion |
+| Tap auf den Header neben seinen Buttons | keine Reaktion | keine Reaktion | keine Reaktion |
+| Header sichtbar (wenn angefordert) | ja | ja | **ja** |
 | Drag während der Enter-Animation | greifbar | greifbar | keine Reaktion |
 | Drag während der Exit-Animation | nicht greifbar | nicht greifbar | keine Reaktion |
 | Scrim-Tap während eines laufenden Drags | ignoriert | ignoriert | keine Reaktion |
@@ -297,6 +352,8 @@ Das Überspringen läuft über `animateToWithDecay`: projiziert wird, wo der Wis
 **`gesturesEnabled = false` feuert kein `onDismissAttempt`.** Wo keine Interaktion vorgesehen ist, gibt es keinen Versuch.
 
 **Der Drag-Handle verschwindet bei `gesturesEnabled = false`**, auch wenn die App ihn anfordert — ein Griff, an dem nichts passiert, ist eine Falschaussage. Bei `interactiveDismissEnabled = false` bleibt er sichtbar: dort signalisiert er korrekt „verschiebbar, aber nicht wegwischbar".
+
+**Der Header bleibt bei `gesturesEnabled = false` sichtbar**, anders als der Handle. Er ist Inhalt, kein Griff; seine Aktionen sind gerade in einem gesperrten Sheet oft der einzige Ausweg. Ein Tap auf ihn wechselt keinen Detent — ein Fehl-Tap neben „Sichern" darf das Sheet nicht bewegen.
 
 **`onDismissRequest` feuert sofort beim Commit der Geste**, nicht nach der Exit-Animation. Konsequenz für den Host: er hält den Registry-Eintrag über das Ende von `isPresented` hinaus am Leben, bis die Exit-Animation durch ist.
 
@@ -358,6 +415,8 @@ Aufwärts `onPreScroll`, abwärts `onPostScroll` — die M3/iOS-Konvention. Die 
 
 Kein Sonderfall fragt `firstVisibleItemIndex` ab — die Regeln sind rein deltabasiert und damit automatisch korrekt für `reverseLayout` und verschachtelte Scroller.
 
+**Der Header ist kein Teil des Nested Scroll.** Er scrollt nicht; ein Zug auf ihm geht direkt an `anchoredDraggable` des Panels, wie ein Zug auf dem Handle. Die Regeln oben bleiben unverändert.
+
 **`onPreFling` wird nicht implementiert.** Restvelocity geht in `onPostFling` ans Sheet; der Rückgabewert ist `available − remaining` (M3 verletzt dort den `performFling`-Kontrakt und ist keine Vorlage).
 
 **`VerticalPager` wird unterstützt** — gemessen, der Pager snappt sauber. Zu dokumentieren ist kein Defekt, sondern eine Folge der Verzahnung: aus `medium` blättert die erste Aufwärtsgeste nicht, sondern expandiert das Sheet.
@@ -382,7 +441,11 @@ Kein Sonderfall fragt `firstVisibleItemIndex` ab — die Regeln sind rein deltab
 
 Quelle: [#5](https://github.com/SirCedric/BottomSheet/issues/5), verankert in [#7](https://github.com/SirCedric/BottomSheet/issues/7).
 
-Die Library konsumiert **nur `safeDrawing.only(Bottom)`** im Content-Slot des Sheets (Navbar, Gesture-Bar, IME, unterer Cutout), plus einen offsetabhängigen Top-Konsum. Statusbar, seitliche Insets und Gesture-Insets werden durchgereicht.
+Die Library konsumiert im Content-Slot **`safeDrawing.only(Bottom)`** (Navbar, Gesture-Bar, IME, unterer Cutout) und **`safeDrawing.only(Horizontal)`** (seitliche Navbar im Querformat, seitliche Cutouts), plus einen offsetabhängigen Top-Konsum. Der seitliche Konsum gilt für Header- und Content-Slot gleichermaßen, der Drag Handle bleibt mittig auf der vollen Breite. Statusbar und Gesture-Insets werden durchgereicht.
+
+**Seitlich revidiert** durch [Seitliche Insets im Sheet werden nicht konsumiert](https://github.com/SirCedric/BottomSheet/issues/50): Bis 0.0.1 wurden seitliche Insets durchgereicht, und im Querformat mit 3-Button-Navigation lagen Content und Header unter der Leiste. Die Asymmetrie zum unteren Konsum hatte keine Begründung, der Fall lag in #5 und #7 nicht auf dem Tisch. **Der Panel-Hintergrund läuft weiter randlos bis an die Kante**, nur die Slots weichen aus.
+
+Konsumiert wird per `windowInsetsPadding` mit anschließendem `consumeWindowInsets`. Eine App, die im Content selbst `safeDrawingPadding()` setzt, bekommt seitlich deshalb 0 statt doppeltem Abstand. Wer mit festen Werten gegen die Navbar paddet, bekommt zusätzlichen Abstand. Das ist eine **Verhaltensänderung gegenüber 0.0.1** und gehört in die Release Notes.
 
 **Kein separates `imePadding()`** — `safeDrawing` enthält das IME bereits; M3 hat sein unbedingtes `imePadding()` als Bug entfernt.
 
@@ -447,6 +510,14 @@ Immer nur die mögliche Richtung anbieten. Bei einem einzigen Detent gibt es kei
 
 **Der Drag-Handle trägt keine eigenen Semantics** — sein Tap-Zyklus läuft ebenfalls über `pointerInput`. Er ist Teil des Sheet-Knotens.
 
+### Header
+
+Der Header-Container trägt `isTraversalGroup = true` und sonst keine Semantics. Damit kommen seine Knoten geschlossen **vor** dem Content, auch wenn ein Content-Element beim Überscrollen geometrisch in die Header-Zeile ragt. Ein `traversalIndex` ist nicht nötig: Compose sortiert die drei Slots einer Zeile von selbst links → Titel → rechts, unter RTL gespiegelt ([#47](https://github.com/SirCedric/BottomSheet/issues/47)).
+
+**`heading()` sitzt im Baustein auf einem Wrapper mit `mergeDescendants = true`** um den Titel-Slot, und nur, wenn ein Titel da ist. Ohne Merge ist der Wrapper nicht fokussierbar, TalkBack landet auf dem `Text`-Kind, und das ist keine Überschrift. Angesagt wird „*Titel*, Überschrift".
+
+**`paneTitle` bleibt unabhängig.** Aus einem Composable lässt sich kein String ableiten; die KDoc rät, beide gleich zu setzen.
+
 **TalkBacks „Aktivieren" bleibt bewusst tot.** Es ist der Standardeintrag, der auf jedem Knoten im Aktions-Zyklus steht (`ACTION_CLICK`). Es zu belegen wurde gebaut und verworfen: es dupliziert Maximieren/Minimieren und kostet auf jedem Fokuswechsel die Ansage „zum Aktivieren doppeltippen".
 
 ---
@@ -483,7 +554,7 @@ internal fun resolveGesture(
 ): GestureOutcome
 ```
 
-`SheetAnchors` ist ein eigener Wert-Typ — **kein `DraggableAnchors` im Rückgabetyp**, sonst bräuchte der Test eine Android-Laufzeit. Die Umwandlung bleibt ein Einzeiler im `layout`-Block. Die Regeltabelle aus Abschnitt 7 wird auf dieselbe Weise herausgezogen.
+`SheetAnchors` ist ein eigener Wert-Typ — **kein `DraggableAnchors` im Rückgabetyp**, sonst bräuchte der Test eine Android-Laufzeit. Die Umwandlung bleibt ein Einzeiler im `layout`-Block. Die Regeltabelle aus Abschnitt 7 wird auf dieselbe Weise herausgezogen, ebenso die Titel-Platzierung des Header-Bausteins aus Abschnitt 3 (Eingabe: Breiten von Header, Navigation, Aktionen und Titel; Ausgabe: x-Position und maximale Titelbreite).
 
 | Ebene | Ort | Engine | Läuft |
 |---|---|---|---|
@@ -506,6 +577,7 @@ JVM (`src/test`):
 2. `resolveGesture` als Parameter-Matrix über die vollständige Tabelle aus Abschnitt 5.
 3. `initialDetent`-Fallback, wenn `Medium` nicht in `presentationDetents` steht.
 4. Die Nested-Scroll-Regeltabelle als zweite Matrix.
+5. Titel-Platzierung des Headers: kurzer Titel exakt mittig; Kollision mit breiten Aktionen schiebt nach links, mit breiter Navigation nach rechts; ohne Platz Breite 0, nie negativ.
 
 Gerät (`src/androidTest`):
 
@@ -529,6 +601,14 @@ Gerät (`src/androidTest`):
 22. Scrim erzeugt **keinen** klickbaren Knoten, auch wenn sein Tap schließt.
 23. Panel erzeugt **keinen** fokussierbaren Knoten, obwohl es den Eingabefokus hält.
 24. Pager-Snap, Animationsübernahme, Fling-Übergabe (drei Fälle aus Abschnitt 7).
+25. Header liegt unter dem Handle und über dem Content-Slot; ohne `header` liegt der Content wie bisher direkt unter dem Handle.
+26. Langer Content in `Large`, nach unten gescrollt ⇒ Header und eine Aktion darin sind sichtbar und lösen per Klick aus.
+27. Kurzer Content ⇒ `Medium` umfasst Handle, Header und Content.
+28. Ohne gezeichneten Handle ⇒ 12.dp Abstand über dem Header; bei `gesturesEnabled = false` bleibt der Header, der Handle verschwindet.
+29. Tap auf den Header neben den Buttons ⇒ kein Detent-Wechsel.
+30. `BottomSheetDefaults.Header` mit Titel ⇒ der fokussierbare Knoten mit dem Titeltext trägt `Heading`.
+31. Header-Knoten kommen in der Traversal-Reihenfolge vor den Content-Knoten.
+32. Simulierte seitliche Insets ⇒ Header- und Content-Slot sind seitlich eingerückt, der Panel-Hintergrund reicht bis an die Kante; `safeDrawingPadding()` im Content ergibt seitlich keinen zusätzlichen Abstand.
 
 Zusätzlich in CI zu verankern: der M3-Freiheits-Check über `releaseCompileClasspath`.
 
@@ -602,5 +682,8 @@ api(libs.compose.ui)
 | [Accessibility des in-composition Hosts](https://github.com/SirCedric/BottomSheet/issues/14) | Abschirmung, Fokus, Aktionen |
 | [Rubber-Band an gesperrten Kanten](https://github.com/SirCedric/BottomSheet/issues/16) | Widerstandsfunktion, Zahlen, Versuchs-Callbacks |
 | [TalkBack-Durchlauf am Gerät](https://github.com/SirCedric/BottomSheet/issues/17) | Korrekturen an #14, Semantics-Regel |
+| [Header-Slot: Weg zum Spec-Nachtrag](https://github.com/SirCedric/BottomSheet/issues/46) | Header-Slot und `Defaults.Header`, Maße, Accessibility |
+| [Recherche: Header-Maße bei SwiftUI und Compose](https://github.com/SirCedric/BottomSheet/issues/47) | Maße aus `CenterAlignedTopAppBar`, `heading()`-Falle |
+| [Prototyp: BottomSheetDefaults.Header am Gerät](https://github.com/SirCedric/BottomSheet/issues/48) | Look, Titel-Platzierung, Abstand ohne Handle |
 
-Prototypen liegen auf den Branches `prototype/6-host-mechanics`, `prototype/7-layout-detents`, `prototype/9-animation-scrim`, `prototype/12-nested-scroll`, `prototype/16-rubber-band` und `prototype/17-talkback`; Recherche-Findings auf `research/3-swiftui-sheet-detents`, `research/4-nested-scroll` und `research/5-insets-ime`.
+Prototypen liegen auf den Branches `prototype/48-header`, `prototype/6-host-mechanics`, `prototype/7-layout-detents`, `prototype/9-animation-scrim`, `prototype/12-nested-scroll`, `prototype/16-rubber-band` und `prototype/17-talkback`; Recherche-Findings auf `research/3-swiftui-sheet-detents`, `research/4-nested-scroll`, `research/5-insets-ime` und `research/47-header-metrics`.
