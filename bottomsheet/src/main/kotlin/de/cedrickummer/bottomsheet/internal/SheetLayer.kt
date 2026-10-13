@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
@@ -62,6 +63,7 @@ import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Velocity
 import de.cedrickummer.bottomsheet.BottomSheetColors
 import de.cedrickummer.bottomsheet.BottomSheetDetentNames
@@ -77,6 +79,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
+
+/** The gap above the header when no handle is drawn — what the handle brings along below itself. */
+private val HeaderTopGap = 12.dp
 
 /**
  * What the host needs to know about the running sheet in order to drive app content and blur.
@@ -301,8 +306,8 @@ internal fun SheetLayer(
                 onAnchorJump = { jump -> anchorShift.absorb(jump, scope, motion.animationSpec) },
             ),
         ) {
-            // The handle sits as a fixed header above the content slot and does not scroll with
-            // it — otherwise a sheet with scrollable content could not be dragged at all.
+            // The handle sits fixed above the content slot and does not scroll with it —
+            // otherwise a sheet with scrollable content could not be dragged at all.
             val handle = entry.dragHandle.takeIf { entry.gesturesEnabled }
             if (handle != null) {
                 Box(
@@ -324,9 +329,23 @@ internal fun SheetLayer(
                 }
             }
 
+            entry.header?.let { header ->
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = if (handle == null) HeaderTopGap else 0.dp)
+                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+                        .semantics { isTraversalGroup = true },
+                ) {
+                    with(sheetScope) { header(this) }
+                }
+            }
+
             Box(
                 Modifier.windowInsetsPadding(
-                    WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom),
+                    WindowInsets.safeDrawing.only(
+                        WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal,
+                    ),
                 ),
             ) {
                 with(sheetScope) { entry.content(this) }
@@ -366,12 +385,12 @@ internal fun SheetLayer(
         }
     }
 
-    LaunchedEffect(entry.gesturesEnabled, entry.dragHandle) {
-        if (entry.gesturesEnabled && entry.dragHandle == null) {
+    LaunchedEffect(entry.gesturesEnabled, entry.dragHandle, entry.header) {
+        if (entry.gesturesEnabled && entry.dragHandle == null && entry.header == null) {
             Log.w(
                 LogTag,
-                "Sheet without a drag handle: if the content scrolls, no reliable drag surface " +
-                    "is left.",
+                "Sheet without a drag handle or header: if the content scrolls, no reliable " +
+                    "drag surface is left.",
             )
         }
     }

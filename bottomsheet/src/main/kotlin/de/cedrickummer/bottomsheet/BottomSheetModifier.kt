@@ -39,9 +39,17 @@ import de.cedrickummer.bottomsheet.internal.SheetRegistry
  *   confirming before data loss.
  * @param onExpandAttempt the counterpart at the upper edge, when `Large` is not allowed.
  * @param paneTitle announced when the sheet opens. Without a value the library announces
- *   nothing — it ships no strings of its own.
- * @param dragHandle the handle at the top edge; `null` means no handle. If it is missing and the
- *   content scrolls, no reliable drag surface is left, and the library warns.
+ *   nothing — it ships no strings of its own. With a [header] title, set the same text here: the
+ *   library cannot derive it from a composable.
+ * @param dragHandle the handle at the top edge; `null` means no handle. It stays put while the
+ *   content scrolls. If both the handle and the [header] are missing and the content scrolls, no
+ *   reliable drag surface is left, and the library warns.
+ * @param header a fixed area between the handle and the content, typically
+ *   [BottomSheetDefaults.Header] with a title and actions. It does not scroll with the content,
+ *   counts towards the height of `Medium`, drags the sheet like the handle and comes before the
+ *   content for accessibility services. Unlike the handle it stays visible when
+ *   [gesturesEnabled] is `false` — its actions are often the only way out of a locked sheet. A
+ *   tap on it does not change the detent.
  * @param colors overrides the host's colours; `null` means "use the host's".
  * @param motion overrides the host's curve.
  * @param shape overrides the host's shape.
@@ -60,6 +68,7 @@ public fun Modifier.bottomSheet(
     onExpandAttempt: (() -> Unit)? = null,
     paneTitle: String? = null,
     dragHandle: (@Composable () -> Unit)? = { BottomSheetDefaults.DragHandle() },
+    header: (@Composable BottomSheetScope.() -> Unit)? = null,
     colors: BottomSheetColors? = null,
     motion: BottomSheetMotion? = null,
     shape: Shape? = null,
@@ -76,6 +85,7 @@ public fun Modifier.bottomSheet(
     onExpandAttempt = onExpandAttempt,
     paneTitle = paneTitle,
     dragHandle = dragHandle,
+    header = header,
     colors = colors,
     motion = motion,
     shape = shape,
@@ -94,6 +104,7 @@ private class BottomSheetElement(
     val onExpandAttempt: (() -> Unit)?,
     val paneTitle: String?,
     val dragHandle: (@Composable () -> Unit)?,
+    val header: (@Composable BottomSheetScope.() -> Unit)?,
     val colors: BottomSheetColors?,
     val motion: BottomSheetMotion?,
     val shape: Shape?,
@@ -119,6 +130,7 @@ private class BottomSheetElement(
         node.onExpandAttempt = onExpandAttempt
         node.paneTitle = paneTitle
         node.dragHandle = dragHandle
+        node.header = header
         node.colors = colors
         node.motion = motion
         node.shape = shape
@@ -145,6 +157,7 @@ private class BottomSheetElement(
             onExpandAttempt === other.onExpandAttempt &&
             paneTitle == other.paneTitle &&
             dragHandle === other.dragHandle &&
+            header === other.header &&
             colors === other.colors &&
             motion === other.motion &&
             shape == other.shape &&
@@ -180,6 +193,7 @@ private class BottomSheetNode :
     var onExpandAttempt: (() -> Unit)? = null
     var paneTitle: String? = null
     var dragHandle: (@Composable () -> Unit)? = null
+    var header: (@Composable BottomSheetScope.() -> Unit)? = null
     var colors: BottomSheetColors? = null
     var motion: BottomSheetMotion? = null
     var shape: Shape? = null
@@ -245,6 +259,7 @@ private class BottomSheetNode :
         entry.onExpandAttempt = onExpandAttempt
         entry.paneTitle = paneTitle
         entry.dragHandle = dragHandle
+        entry.header = header
         entry.colors = colors
         entry.motion = motion
         entry.shape = shape
