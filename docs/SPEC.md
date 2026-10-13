@@ -216,7 +216,7 @@ Quelle: [Header-Slot: Weg zum Spec-Nachtrag](https://github.com/SirCedric/Bottom
 - KDoc `BottomSheetDefaults.Header`: die drei Slots und ihre Platzierung; Aktionen brauchen mindestens 48 × 48.dp Trefferfläche (`sizeIn(minWidth = 48.dp, minHeight = 48.dp)`), weil der Baustein das ohne M3 nicht erzwingen kann; der Titel sollte `maxLines = 1` mit `TextOverflow.Ellipsis` setzen, die Library kürzt nicht.
 - KDoc `paneTitle`: Wer einen Header-Titel setzt, setzt hier meist denselben Text. Die Library leitet ihn nicht ab.
 - KDoc `dragHandle` und `BottomSheetDefaults.DragHandle`: Die bisherige Formulierung „fixed header above the content slot“ kollidiert mit dem Begriff **Header** und wird umformuliert. Die Warnung bei fehlendem Handle gilt nur noch, wenn auch kein Header da ist (Abschnitt 3).
-- README: neuer Abschnitt zum Header nach „Scrollable content“, mit dem Formular-Beispiel aus #45; der Satz zum Drag-Handle als „fixed header“ unter „Scrollable content“ wird angepasst; `header` in die Parametertabelle unter „Appearance“.
+- README: unter „Insets and the keyboard“ den seitlichen Konsum ergänzen (Abschnitt 8); neuer Abschnitt zum Header nach „Scrollable content“, mit dem Formular-Beispiel aus #45; der Satz zum Drag-Handle als „fixed header“ unter „Scrollable content“ wird angepasst; `header` in die Parametertabelle unter „Appearance“.
 
 ---
 
@@ -253,7 +253,7 @@ val mediumHeight = if (contentHeight >= largeHeight) {
 
 **Der Content wird erst beim Öffnen komponiert** — und bleibt bis zum **Ende der Exit-Animation** am Leben (siehe Abschnitt 5). Vorab-Komposition bringt keinen Positionsvorteil und legt einen Scrim mit `alpha = 0` über die App, der jeden Tap schluckt.
 
-**Header** ([#48](https://github.com/SirCedric/BottomSheet/issues/48)): Reihenfolge im Panel ist Drag Handle, Header, Content. Der Header scrollt nicht mit und zählt zur Höhe für `Medium` — `computeAnchors` bekommt wie bisher die gemessene Höhe der ganzen Spalte. Der Content-Slot erhält als Maximalhöhe, was von `largeHeight` nach Handle und Header übrig bleibt. Seitliche Insets behandelt der Header wie der Content, siehe [#50](https://github.com/SirCedric/BottomSheet/issues/50).
+**Header** ([#48](https://github.com/SirCedric/BottomSheet/issues/48)): Reihenfolge im Panel ist Drag Handle, Header, Content. Der Header scrollt nicht mit und zählt zur Höhe für `Medium` — `computeAnchors` bekommt wie bisher die gemessene Höhe der ganzen Spalte. Der Content-Slot erhält als Maximalhöhe, was von `largeHeight` nach Handle und Header übrig bleibt. Seitliche Insets behandelt der Header wie der Content (Abschnitt 8).
 
 **Ohne gezeichneten Handle** (`dragHandle == null` oder `gesturesEnabled = false`) setzt die Library **12.dp** Abstand über den Header — den Abstand, den der Handle unter sich mitbringt. Der Baustein weiß davon nichts. Ohne Header bleibt das Layout wie in 0.0.1.
 
@@ -441,7 +441,11 @@ Kein Sonderfall fragt `firstVisibleItemIndex` ab — die Regeln sind rein deltab
 
 Quelle: [#5](https://github.com/SirCedric/BottomSheet/issues/5), verankert in [#7](https://github.com/SirCedric/BottomSheet/issues/7).
 
-Die Library konsumiert **nur `safeDrawing.only(Bottom)`** im Content-Slot des Sheets (Navbar, Gesture-Bar, IME, unterer Cutout), plus einen offsetabhängigen Top-Konsum. Statusbar, seitliche Insets und Gesture-Insets werden durchgereicht.
+Die Library konsumiert im Content-Slot **`safeDrawing.only(Bottom)`** (Navbar, Gesture-Bar, IME, unterer Cutout) und **`safeDrawing.only(Horizontal)`** (seitliche Navbar im Querformat, seitliche Cutouts), plus einen offsetabhängigen Top-Konsum. Der seitliche Konsum gilt für Header- und Content-Slot gleichermaßen, der Drag Handle bleibt mittig auf der vollen Breite. Statusbar und Gesture-Insets werden durchgereicht.
+
+**Seitlich revidiert** durch [Seitliche Insets im Sheet werden nicht konsumiert](https://github.com/SirCedric/BottomSheet/issues/50): Bis 0.0.1 wurden seitliche Insets durchgereicht, und im Querformat mit 3-Button-Navigation lagen Content und Header unter der Leiste. Die Asymmetrie zum unteren Konsum hatte keine Begründung, der Fall lag in #5 und #7 nicht auf dem Tisch. **Der Panel-Hintergrund läuft weiter randlos bis an die Kante**, nur die Slots weichen aus.
+
+Konsumiert wird per `windowInsetsPadding` mit anschließendem `consumeWindowInsets`. Eine App, die im Content selbst `safeDrawingPadding()` setzt, bekommt seitlich deshalb 0 statt doppeltem Abstand. Wer mit festen Werten gegen die Navbar paddet, bekommt zusätzlichen Abstand. Das ist eine **Verhaltensänderung gegenüber 0.0.1** und gehört in die Release Notes.
 
 **Kein separates `imePadding()`** — `safeDrawing` enthält das IME bereits; M3 hat sein unbedingtes `imePadding()` als Bug entfernt.
 
@@ -604,6 +608,7 @@ Gerät (`src/androidTest`):
 29. Tap auf den Header neben den Buttons ⇒ kein Detent-Wechsel.
 30. `BottomSheetDefaults.Header` mit Titel ⇒ der fokussierbare Knoten mit dem Titeltext trägt `Heading`.
 31. Header-Knoten kommen in der Traversal-Reihenfolge vor den Content-Knoten.
+32. Simulierte seitliche Insets ⇒ Header- und Content-Slot sind seitlich eingerückt, der Panel-Hintergrund reicht bis an die Kante; `safeDrawingPadding()` im Content ergibt seitlich keinen zusätzlichen Abstand.
 
 Zusätzlich in CI zu verankern: der M3-Freiheits-Check über `releaseCompileClasspath`.
 
