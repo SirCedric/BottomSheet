@@ -52,6 +52,10 @@ _Avoid_: Overlay, Dimmer, Backdrop, Abdunklung
 Der waagerechte Griff am oberen Rand des Sheets. Er signalisiert Beweglichkeit und ist zugleich eine Bedienfläche.
 _Avoid_: Grabber, Griff, Indicator, Pill
 
+**Header**:
+Die feste Fläche zwischen Drag Handle und Content, die nicht mitscrollt. Sie trägt optional einen Titel und Aktionen und gehört, anders als der Drag Handle, zum Inhalt des Sheets.
+_Avoid_: Toolbar, TopBar, Kopfzeile, Titelleiste
+
 ### Interaktion
 
 **Dismiss**:
