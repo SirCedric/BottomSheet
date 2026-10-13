@@ -324,6 +324,12 @@ internal fun SheetLayer(
                 }
             }
 
+            entry.header?.let { header ->
+                Box(Modifier.fillMaxWidth().semantics { isTraversalGroup = true }) {
+                    with(sheetScope) { header(this) }
+                }
+            }
+
             Box(
                 Modifier.windowInsetsPadding(
                     WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom),
