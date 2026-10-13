@@ -203,7 +203,44 @@ The interlocking follows the Material3 and iOS convention:
 
 `VerticalPager` works; the only wrinkle is that from `medium`, the first upward gesture expands the sheet instead of paging.
 
-The **drag handle** sits as a fixed header above the content and does not scroll with it, which makes it the always-reachable drag surface. Turn it off with `dragHandle = null` while showing scrollable content and the library logs a warning.
+The **drag handle** sits fixed above the content and does not scroll with it, which makes it the always-reachable drag surface. Turn it off with `dragHandle = null` and no header while showing scrollable content, and the library logs a warning.
+
+## Header
+
+A long form loses its title and its save action as soon as you scroll — unless they sit in the **header**: a fixed area between the handle and the content that does not scroll with it.
+
+```kotlin
+Modifier.bottomSheet(
+    isPresented = state.isGameSheetPresented,
+    onDismissRequest = { onAction(OnGameSheetDismiss) },
+    presentationDetents = SheetDetents.Large,
+    paneTitle = stringResource(R.string.record_game),
+    header = {
+        BottomSheetDefaults.Header(
+            navigationAction = {
+                TextButton(onClick = { onAction(OnGameSheetDismiss) }) { Text(stringResource(R.string.cancel)) }
+            },
+            title = {
+                Text(stringResource(R.string.record_game), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            },
+            actions = {
+                TextButton(onClick = { onAction(OnSave) }) { Text(stringResource(R.string.save)) }
+            },
+        )
+    },
+) {
+    Column(Modifier.verticalScroll(rememberScrollState())) {
+        GameForm(state, onAction)
+    }
+}
+```
+
+- The header **counts towards `medium`**, which is as high as handle, header and content together.
+- It **drags the sheet** like the handle; a tap on it does not change the detent. It **stays visible** with `gesturesEnabled = false` — its actions are often the only way out of a locked sheet.
+- Without a drawn handle the library leaves a 12 dp gap above it.
+- `header` is a free slot. `BottomSheetDefaults.Header` is the ready-made filling: an optional navigation action at the start, an optional title in the centre, optional actions at the end. It is at least 52 dp high. The title stays centred on the full width and only moves aside when the actions need the room.
+- The library ships no typography, strings or icons — `title` and the actions are your own composables. Give every action a touch target of at least 48 × 48 dp; without Material3 the building block cannot enforce it.
+- The title is announced as a heading. It does **not** become the `paneTitle`; set the same text there yourself.
 
 ## Appearance
 
@@ -233,6 +270,7 @@ BottomSheetHost(
 | `shape` | `RoundedCornerShape(28.dp)` at the top |
 | `appContentMinScale` | `0.92` — `1f` turns the scaling off |
 | `dragHandle` | `BottomSheetDefaults.DragHandle()`, `null` for none |
+| `header` | `null` for none, see [Header](#header) |
 
 > **Dark mode:** the default `sheet = Color.White` is wrong on dark backgrounds, and the library cannot fix that by itself — it is Material3-free and knows no theme. A dark-mode app sets `BottomSheetHost(colors = …)` **once**; that is what the app-wide default is for.
 
@@ -242,7 +280,9 @@ The scrim follows the offset linearly and keeps darkening up to `large`. The app
 
 ## Insets and the keyboard
 
-Inside the sheet content the library consumes only `safeDrawing.only(Bottom)` — navigation bar, gesture bar, IME and the bottom cutout. Everything else is passed through. A separate `imePadding()` is unnecessary and would be wrong: `safeDrawing` already includes the IME.
+Inside the header and the sheet content the library consumes `safeDrawing.only(Bottom)` — navigation bar, gesture bar, IME and the bottom cutout — and `safeDrawing.only(Horizontal)`, so nothing slips under a side navigation bar in landscape or a side cutout. The sheet background still runs edge to edge. The status bar and the gesture insets are passed through. A separate `imePadding()` is unnecessary and would be wrong: `safeDrawing` already includes the IME.
+
+> **Changed in 0.0.2:** up to 0.0.1 the side insets were passed through. Content that applies `safeDrawingPadding()` itself is unaffected — the library consumes what it pads. Content that pads against the navigation bar with fixed values now gets that space twice.
 
 ## Accessibility
 

@@ -36,6 +36,7 @@ internal class SheetEntry {
     var onExpandAttempt: (() -> Unit)? by mutableStateOf(null)
     var paneTitle: String? by mutableStateOf(null)
     var dragHandle: (@Composable () -> Unit)? by mutableStateOf(null)
+    var header: (@Composable BottomSheetScope.() -> Unit)? by mutableStateOf(null)
     var colors: BottomSheetColors? by mutableStateOf(null)
     var motion: BottomSheetMotion? by mutableStateOf(null)
     var shape: Shape? by mutableStateOf(null)
