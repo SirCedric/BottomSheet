@@ -1,5 +1,7 @@
 package de.cedrickummer.bottomsheet
 
+import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
@@ -25,7 +27,8 @@ import de.cedrickummer.bottomsheet.internal.SheetRegistry
  * @param isPresented whether the sheet should be visible. The state belongs to the app.
  * @param onDismissRequest fires **only** for dismissals the library caused — an interactive
  *   dismiss, or the owner leaving the composition. If the app sets `isPresented = false` itself,
- *   the callback does not fire.
+ *   the callback does not fire, and neither does it when the activity is recreated for a
+ *   configuration change.
  * @param presentationDetents the resting positions the sheet is allowed to use.
  * @param initialDetent applies on **every** transition from `false` to `true`. If the value is
  *   not part of [presentationDetents], the smallest contained detent is used.
@@ -201,6 +204,7 @@ private class BottomSheetNode :
     var content: @Composable BottomSheetScope.() -> Unit = {}
 
     private var registry: SheetRegistry? = null
+    private var activity: Activity? = null
     private var hostMissing = false
     private val entry = SheetEntry()
 
@@ -215,6 +219,7 @@ private class BottomSheetNode :
             return
         }
         registry = found
+        activity = currentValueOf(LocalActivity)
         entry.ownerDescription = toString()
         publish()
         found.register(entry)
@@ -239,13 +244,16 @@ private class BottomSheetNode :
 
     override fun onDetach() {
         val wasPresented = entry.isPresented
+        val recreating = activity?.isChangingConfigurations == true
         registry?.unregister(entry)
         registry = null
+        activity = null
 
         // When the owner leaves the composition — scrolled out of a LazyColumn, for instance —
         // the sheet disappears without an exit animation. Without this report `isPresented` would
-        // stay `true` at the call site and drift silently against what is on screen.
-        if (wasPresented) onDismissRequest()
+        // stay `true` at the call site and drift silently against what is on screen. A recreation
+        // is the exception: the same owner registers again and the sheet must still be open.
+        if (wasPresented && !recreating) onDismissRequest()
     }
 
     fun publish() {
