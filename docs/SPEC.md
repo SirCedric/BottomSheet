@@ -361,6 +361,8 @@ Das Überspringen läuft über `animateToWithDecay`: projiziert wird, wo der Wis
 
 **Owner verlässt die Composition bei offenem Sheet** ⇒ `onDismissRequest` feuert. Das Sheet ist sofort weg — eine Exit-Animation ist ohne lebende Composition-Stelle nicht zu haben —, aber State und Bild laufen nicht auseinander. Der gefährliche Fall ist das Wegscrollen aus einer `LazyColumn`, das ohne Zutun des Entwicklers passiert.
 
+**Ausnahme: Die Activity wird für einen Config Change neu erstellt** (`isChangingConfigurations`). Dann verlässt die ganze Komposition den Baum, derselbe Owner registriert sich gleich danach neu, und `onDismissRequest` bleibt aus — sonst schlösse jede Rotation das Sheet, entgegen Abschnitt 10 ([#56](https://github.com/SirCedric/BottomSheet/issues/56)).
+
 ---
 
 ## 6. Rubber-Band an gesperrten Kanten
@@ -582,7 +584,7 @@ JVM (`src/test`):
 Gerät (`src/androidTest`):
 
 5. Modifier ohne Host ⇒ Crash mit der Nachricht aus Abschnitt 1.
-6. Owner verlässt die Composition bei offenem Sheet ⇒ `onDismissRequest`.
+6. Owner verlässt die Composition bei offenem Sheet ⇒ `onDismissRequest`; bei einer Recreation der Activity nicht.
 7. Scrim-Tap: schließt / feuert `onDismissAttempt` / ist während der Enter-Animation taub.
 8. Back in allen drei Konfigurationsspalten.
 9. Swipe unter den untersten Detent ⇒ `onDismissRequest`.
